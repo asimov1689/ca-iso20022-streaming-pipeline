@@ -1,9 +1,12 @@
 rootProject.name = 'ca-iso20022-streaming-pipeline'
 
-include 'shared-model'
-include 'ca-producer'
-include 'ca-formatter'
-include 'ca-enricher'
-include 'ca-cobol-stub'
-include 'ca-materializer'
-include 'ca-api'
+include(
+        'shared-model',
+        'ca-producer',
+        'ca-formatter',
+        'ca-enricher',
+        'ca-cobol-stub',
+        'ca-materializer',
+        'ca-api'
+)
+
