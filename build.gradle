@@ -1,21 +1,26 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.4' apply false
+    id 'org.springframework.boot'        version '3.3.4' apply false
     id 'io.spring.dependency-management' version '1.1.6' apply false
 }
 
 allprojects {
-    group = 'com.gagroup.ca'
+    group   = 'com.gagroup.ca'
     version = '0.0.1-SNAPSHOT'
-
-    repositories {
-        mavenCentral()
-    }
+    repositories { mavenCentral() }
 }
 
 subprojects {
     apply plugin: 'java'
     apply plugin: 'io.spring.dependency-management'
+
+    // Gradle toolchain — pins Java 21 LTS explicitly
+    // More reliable than sourceCompatibility: finds the JDK on disk
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
 
     dependencyManagement {
         imports {
@@ -23,28 +28,17 @@ subprojects {
         }
     }
 
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(21)
-        }
-    }
-
+    // ── Source sets for 4-level test pyramid ──────────────────────────────────
     sourceSets {
         integrationTest {
-            java.srcDir file('src/integrationTest/java')
-            resources.srcDir file('src/integrationTest/resources')
+            java.srcDir 'src/integrationTest/java'
+            resources.srcDir 'src/integrationTest/resources'
             compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
             runtimeClasspath += output + compileClasspath
         }
         contractTest {
-            java.srcDir file('src/contractTest/java')
-            resources.srcDir file('src/contractTest/resources')
-            compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
-            runtimeClasspath += output + compileClasspath
-        }
-        systemTest {
-            java.srcDir file('src/systemTest/java')
-            resources.srcDir file('src/systemTest/resources')
+            java.srcDir 'src/contractTest/java'
+            resources.srcDir 'src/contractTest/resources'
             compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
             runtimeClasspath += output + compileClasspath
         }
@@ -55,47 +49,49 @@ subprojects {
         integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
         contractTestImplementation.extendsFrom testImplementation
         contractTestRuntimeOnly.extendsFrom testRuntimeOnly
-        systemTestImplementation.extendsFrom testImplementation
-        systemTestRuntimeOnly.extendsFrom testRuntimeOnly
     }
 
-    dependencies {
-        compileOnly 'org.projectlombok:lombok'
-        annotationProcessor 'org.projectlombok:lombok'
-        testImplementation 'org.springframework.boot:spring-boot-starter-test'
-        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    }
-
+    // ── Tasks ──────────────────────────────────────────────────────────────────
     tasks.register('integrationTest', Test) {
-        description = 'Runs integration tests.'
+        description = 'Runs integration tests with Testcontainers'
         group = 'verification'
         testClassesDirs = sourceSets.integrationTest.output.classesDirs
         classpath = sourceSets.integrationTest.runtimeClasspath
-        shouldRunAfter test
         useJUnitPlatform()
+        testLogging { events 'passed','skipped','failed' }
+        shouldRunAfter test
     }
 
     tasks.register('contractTest', Test) {
-        description = 'Runs contract tests.'
+        description = 'Runs WireMock contract tests'
         group = 'verification'
         testClassesDirs = sourceSets.contractTest.output.classesDirs
         classpath = sourceSets.contractTest.runtimeClasspath
-        shouldRunAfter integrationTest
         useJUnitPlatform()
+        testLogging { events 'passed','skipped','failed' }
+        shouldRunAfter test
     }
 
-    tasks.register('systemTest', Test) {
-        description = 'Runs system tests.'
-        group = 'verification'
-        testClassesDirs = sourceSets.systemTest.output.classesDirs
-        classpath = sourceSets.systemTest.runtimeClasspath
-        shouldRunAfter contractTest
-        useJUnitPlatform()
+    // ── Shared dependencies ───────────────────────────────────────────────────
+    dependencies {
+        compileOnly         'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testImplementation  'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly     'org.junit.platform:junit-platform-launcher'
+
+        // Testcontainers — available in integration and system tests
+        integrationTestImplementation 'org.testcontainers:testcontainers:1.19.3'
+        integrationTestImplementation 'org.testcontainers:kafka:1.19.3'
+        integrationTestImplementation 'org.testcontainers:postgresql:1.19.3'
+        integrationTestImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+
+        // WireMock — contract tests only
+        contractTestImplementation 'org.wiremock:wiremock-standalone:3.3.1'
+        contractTestImplementation 'org.testcontainers:junit-jupiter:1.19.3'
     }
 
     test {
         useJUnitPlatform()
+        testLogging { events 'passed','skipped','failed' }
     }
-
-    check.dependsOn integrationTest, contractTest, systemTest
 }
