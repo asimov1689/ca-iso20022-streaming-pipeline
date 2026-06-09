@@ -1,0 +1,3 @@
+dependencies {
+    // Shared DTOs, no Spring Boot dependency needed
+}

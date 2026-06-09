@@ -1,0 +1,101 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.4' apply false
+    id 'io.spring.dependency-management' version '1.1.6' apply false
+}
+
+allprojects {
+    group = 'com.gagroup.ca'
+    version = '0.0.1-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:3.3.4"
+        }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    sourceSets {
+        integrationTest {
+            java.srcDir file('src/integrationTest/java')
+            resources.srcDir file('src/integrationTest/resources')
+            compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+            runtimeClasspath += output + compileClasspath
+        }
+        contractTest {
+            java.srcDir file('src/contractTest/java')
+            resources.srcDir file('src/contractTest/resources')
+            compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+            runtimeClasspath += output + compileClasspath
+        }
+        systemTest {
+            java.srcDir file('src/systemTest/java')
+            resources.srcDir file('src/systemTest/resources')
+            compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+            runtimeClasspath += output + compileClasspath
+        }
+    }
+
+    configurations {
+        integrationTestImplementation.extendsFrom testImplementation
+        integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+        contractTestImplementation.extendsFrom testImplementation
+        contractTestRuntimeOnly.extendsFrom testRuntimeOnly
+        systemTestImplementation.extendsFrom testImplementation
+        systemTestRuntimeOnly.extendsFrom testRuntimeOnly
+    }
+
+    dependencies {
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.register('integrationTest', Test) {
+        description = 'Runs integration tests.'
+        group = 'verification'
+        testClassesDirs = sourceSets.integrationTest.output.classesDirs
+        classpath = sourceSets.integrationTest.runtimeClasspath
+        shouldRunAfter test
+        useJUnitPlatform()
+    }
+
+    tasks.register('contractTest', Test) {
+        description = 'Runs contract tests.'
+        group = 'verification'
+        testClassesDirs = sourceSets.contractTest.output.classesDirs
+        classpath = sourceSets.contractTest.runtimeClasspath
+        shouldRunAfter integrationTest
+        useJUnitPlatform()
+    }
+
+    tasks.register('systemTest', Test) {
+        description = 'Runs system tests.'
+        group = 'verification'
+        testClassesDirs = sourceSets.systemTest.output.classesDirs
+        classpath = sourceSets.systemTest.runtimeClasspath
+        shouldRunAfter contractTest
+        useJUnitPlatform()
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    check.dependsOn integrationTest, contractTest, systemTest
+}
