@@ -1,0 +1,54 @@
+plugins { id 'org.springframework.boot' }
+
+sourceSets {
+    systemTest {
+        java.srcDir      'src/systemTest/java'
+        resources.srcDirs = ['src/systemTest/resources']
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+configurations {
+    systemTestImplementation.extendsFrom testImplementation
+    systemTestRuntimeOnly.extendsFrom    testRuntimeOnly
+}
+
+tasks.register('systemTest', Test) {
+    description = 'End-to-end system tests — full Testcontainers stack'
+    group       = 'verification'
+    testClassesDirs = sourceSets.systemTest.output.classesDirs
+    classpath       = sourceSets.systemTest.runtimeClasspath
+    useJUnitPlatform()
+    testLogging { events 'passed', 'skipped', 'failed' }
+    shouldRunAfter integrationTest
+
+    // Cross-platform Docker socket detection
+    if (System.getProperty('os.name').toLowerCase().contains('mac')) {
+        def rawSocket = new File("${System.getProperty('user.home')}/Library/Containers/com.docker.docker/Data/docker.raw.sock")
+        if (rawSocket.exists()) {
+            environment 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
+            environment 'DOCKER_API_VERSION', '1.45'
+            environment 'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', rawSocket.absolutePath
+        }
+    }
+}
+
+dependencies {
+    implementation project(':shared-model')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+    runtimeOnly     'org.postgresql:postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    systemTestImplementation 'org.awaitility:awaitility:4.2.0'
+    systemTestImplementation 'org.springframework.kafka:spring-kafka'
+    systemTestImplementation 'org.testcontainers:testcontainers:1.20.1'
+    systemTestImplementation 'org.testcontainers:kafka:1.20.1'
+    systemTestImplementation 'org.testcontainers:postgresql:1.20.1'
+    systemTestImplementation 'org.testcontainers:junit-jupiter:1.20.1'
+    systemTestImplementation project(':shared-model')
+}
+bootJar { archiveFileName = 'app.jar' }

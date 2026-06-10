@@ -1,7 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot'        version '3.3.4' apply false
-    id 'io.spring.dependency-management' version '1.1.6' apply false
+    id 'org.springframework.boot' version '3.3.4' apply false
 }
 
 allprojects {
@@ -12,27 +11,38 @@ allprojects {
 
 subprojects {
     apply plugin: 'java'
-    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'checkstyle'
 
-    // Gradle toolchain — pins Java 21 LTS explicitly
-    // More reliable than sourceCompatibility: finds the JDK on disk
+    checkstyle {
+        toolVersion     = '10.17.0'
+        configFile      = rootProject.file('config/checkstyle/checkstyle.xml')
+        configDirectory = rootProject.file('config/checkstyle')
+        ignoreFailures  = false
+        showViolations  = true
+    }
+
+    // Run checkstyle on main sources only in CI-sensitive tasks;
+    // checkstyleTest / checkstyleIntegrationTest are wired automatically.
+    tasks.withType(Checkstyle).configureEach {
+        reports {
+            xml.required = true
+            html.required = true
+        }
+    }
+
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(21)
         }
     }
 
-    dependencyManagement {
-        imports {
-            mavenBom "org.springframework.boot:spring-boot-dependencies:3.3.4"
-        }
-    }
-
     // ── Source sets for 4-level test pyramid ──────────────────────────────────
     sourceSets {
+        test {
+            java.srcDir 'src/test/unit/java'
+        }
         integrationTest {
-            java.srcDir 'src/integrationTest/java'
-            resources.srcDir 'src/integrationTest/resources'
+            java.srcDir 'src/test/integration/java'
             compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
             runtimeClasspath += output + compileClasspath
         }
@@ -58,8 +68,28 @@ subprojects {
         testClassesDirs = sourceSets.integrationTest.output.classesDirs
         classpath = sourceSets.integrationTest.runtimeClasspath
         useJUnitPlatform()
-        testLogging { events 'passed','skipped','failed' }
+        testLogging { 
+            events 'passed', 'skipped', 'failed'
+            showStandardStreams = true
+        }
         shouldRunAfter test
+
+        // Cross-platform Docker socket detection
+        if (System.getProperty('os.name').toLowerCase().contains('mac')) {
+            def rawSocket = new File("${System.getProperty('user.home')}/Library/Containers/com.docker.docker/Data/docker.raw.sock")
+            if (rawSocket.exists()) {
+                println "Setting DOCKER_HOST to ${rawSocket.absolutePath}"
+                environment 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
+                environment 'DOCKER_API_VERSION', '1.45'
+                environment 'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', rawSocket.absolutePath
+                systemProperty 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
+                systemProperty 'DOCKER_API_VERSION', '1.45'
+                systemProperty 'docker.host', "unix://${rawSocket.absolutePath}"
+                systemProperty 'docker.api.version', '1.45'
+            } else {
+                println "Raw socket NOT found at ${rawSocket.absolutePath}"
+            }
+        }
     }
 
     tasks.register('contractTest', Test) {
@@ -68,30 +98,33 @@ subprojects {
         testClassesDirs = sourceSets.contractTest.output.classesDirs
         classpath = sourceSets.contractTest.runtimeClasspath
         useJUnitPlatform()
-        testLogging { events 'passed','skipped','failed' }
+        testLogging { events 'passed', 'skipped', 'failed' }
         shouldRunAfter test
     }
 
     // ── Shared dependencies ───────────────────────────────────────────────────
     dependencies {
+        implementation     platform('org.springframework.boot:spring-boot-dependencies:3.3.4')
+        annotationProcessor platform('org.springframework.boot:spring-boot-dependencies:3.3.4')
+
         compileOnly         'org.projectlombok:lombok'
         annotationProcessor 'org.projectlombok:lombok'
         testImplementation  'org.springframework.boot:spring-boot-starter-test'
         testRuntimeOnly     'org.junit.platform:junit-platform-launcher'
 
         // Testcontainers — available in integration and system tests
-        integrationTestImplementation 'org.testcontainers:testcontainers:1.19.3'
-        integrationTestImplementation 'org.testcontainers:kafka:1.19.3'
-        integrationTestImplementation 'org.testcontainers:postgresql:1.19.3'
-        integrationTestImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+        integrationTestImplementation 'org.testcontainers:testcontainers:1.20.1'
+        integrationTestImplementation 'org.testcontainers:kafka:1.20.1'
+        integrationTestImplementation 'org.testcontainers:postgresql:1.20.1'
+        integrationTestImplementation 'org.testcontainers:junit-jupiter:1.20.1'
 
         // WireMock — contract tests only
         contractTestImplementation 'org.wiremock:wiremock-standalone:3.3.1'
-        contractTestImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+        contractTestImplementation 'org.testcontainers:junit-jupiter:1.20.1'
     }
 
     test {
         useJUnitPlatform()
-        testLogging { events 'passed','skipped','failed' }
+        testLogging { events 'passed', 'skipped', 'failed' }
     }
 }

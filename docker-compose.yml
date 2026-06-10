@@ -1,0 +1,134 @@
+# Docker Compose V2 — no 'version' header
+services:
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports: ["2181:2181"]
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      zookeeper: { condition: service_healthy }
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      retries: 10
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      kafka: { condition: service_healthy }
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "kafka-topics --create --if-not-exists \
+         --topic ca.confirmations.raw --bootstrap-server kafka:9092 \
+         --partitions 3 --replication-factor 1 &&
+       kafka-topics --create --if-not-exists \
+         --topic ca.confirmations.formatted --bootstrap-server kafka:9092 \
+         --partitions 3 --replication-factor 1 &&
+       kafka-topics --create --if-not-exists \
+         --topic ca.confirmations.enriched --bootstrap-server kafka:9092 \
+         --partitions 3 --replication-factor 1 &&
+       kafka-topics --create --if-not-exists \
+         --topic ca.dead-letter --bootstrap-server kafka:9092 \
+         --partitions 1 --replication-factor 1"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: caevents
+      POSTGRES_USER: causer
+      POSTGRES_PASSWORD: capass
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U causer -d caevents"]
+      interval: 10s
+      retries: 5
+
+  ca-cobol-stub:
+    image: ca-cobol-stub:0.0.1-SNAPSHOT
+    build: ./ca-cobol-stub
+    ports: ["8086:8086"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8086/actuator/health"]
+      interval: 10s
+      retries: 5
+
+  ca-producer:
+    image: ca-producer:0.0.1-SNAPSHOT
+    build: ./ca-producer
+    ports: ["8081:8081"]
+    depends_on:
+      kafka: { condition: service_healthy }
+    environment:
+      SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:9092
+
+  ca-formatter:
+    image: ca-formatter:0.0.1-SNAPSHOT
+    build: ./ca-formatter
+    ports: ["8082:8082"]
+    depends_on:
+      kafka: { condition: service_healthy }
+    environment:
+      SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:9092
+
+  ca-enricher:
+    image: ca-enricher:0.0.1-SNAPSHOT
+    build: ./ca-enricher
+    ports: ["8083:8083"]
+    depends_on:
+      kafka: { condition: service_healthy }
+      ca-cobol-stub: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    environment:
+      SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:9092
+      COBOL_STUB_URL: http://ca-cobol-stub:8086
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/caevents
+      SPRING_DATASOURCE_USERNAME: causer
+      SPRING_DATASOURCE_PASSWORD: capass
+
+  ca-materializer:
+    image: ca-materializer:0.0.1-SNAPSHOT
+    build: ./ca-materializer
+    ports: ["8084:8084"]
+    depends_on:
+      kafka: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    environment:
+      SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:9092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/caevents
+      SPRING_DATASOURCE_USERNAME: causer
+      SPRING_DATASOURCE_PASSWORD: capass
+
+  ca-confirmations-api:
+    image: ca-confirmations-api:0.0.1-SNAPSHOT
+    build: ./ca-confirmations-api
+    ports: ["8085:8085"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/caevents
+      SPRING_DATASOURCE_USERNAME: causer
+      SPRING_DATASOURCE_PASSWORD: capass
+
+volumes:
+  pgdata:
