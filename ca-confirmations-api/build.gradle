@@ -23,13 +23,12 @@ tasks.register('systemTest', Test) {
     testLogging { events 'passed', 'skipped', 'failed' }
     shouldRunAfter integrationTest
 
-    // Cross-platform Docker socket detection
-    if (System.getProperty('os.name').toLowerCase().contains('mac')) {
-        def rawSocket = new File("${System.getProperty('user.home')}/Library/Containers/com.docker.docker/Data/docker.raw.sock")
-        if (rawSocket.exists()) {
-            environment 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
-            environment 'DOCKER_API_VERSION', '1.45'
-            environment 'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', rawSocket.absolutePath
+    // Testcontainers should auto-detect Docker. For constrained sandboxes,
+    // pass DOCKER_HOST / TESTCONTAINERS_* from the shell or CI environment.
+    ['DOCKER_HOST', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH', 'DOCKER_CONFIG',
+     'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', 'TESTCONTAINERS_RYUK_DISABLED'].each { name ->
+        if (System.getenv(name)) {
+            environment name, System.getenv(name)
         }
     }
 }
@@ -45,10 +44,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     systemTestImplementation 'org.awaitility:awaitility:4.2.0'
     systemTestImplementation 'org.springframework.kafka:spring-kafka'
-    systemTestImplementation 'org.testcontainers:testcontainers:1.20.1'
-    systemTestImplementation 'org.testcontainers:kafka:1.20.1'
-    systemTestImplementation 'org.testcontainers:postgresql:1.20.1'
-    systemTestImplementation 'org.testcontainers:junit-jupiter:1.20.1'
+    systemTestImplementation platform("org.testcontainers:testcontainers-bom:${rootProject.testcontainersVersion}")
+    systemTestImplementation 'org.testcontainers:testcontainers'
+    systemTestImplementation 'org.testcontainers:kafka'
+    systemTestImplementation 'org.testcontainers:postgresql'
+    systemTestImplementation 'org.testcontainers:junit-jupiter'
     systemTestImplementation project(':shared-model')
 }
 bootJar { archiveFileName = 'app.jar' }

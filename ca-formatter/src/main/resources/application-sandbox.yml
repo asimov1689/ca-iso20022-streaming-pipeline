@@ -1,0 +1,5 @@
+spring:
+  kafka:
+    bootstrap-servers: ${CA_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest

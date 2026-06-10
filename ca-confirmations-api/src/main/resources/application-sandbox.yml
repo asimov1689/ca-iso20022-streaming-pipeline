@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    url: ${CA_DB_URL:jdbc:postgresql://localhost:5432/caevents}
+    username: ${CA_DB_USERNAME:causer}
+    password: ${CA_DB_PASSWORD:capass}

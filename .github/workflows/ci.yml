@@ -163,7 +163,11 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build all Docker images
-        run: ./gradlew clean build -x test && docker compose build
+        run: |
+          ./gradlew clean build -x test
+          docker compose --env-file infrastructure/sandbox/sandbox.env \
+            -f infrastructure/productive/docker-compose.yml \
+            -f infrastructure/sandbox/docker-compose.yml build
 
       - name: Run end-to-end system tests
         run: ./gradlew :ca-confirmations-api:systemTest

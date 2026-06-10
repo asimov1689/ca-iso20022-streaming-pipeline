@@ -25,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_enr_at          ON ca_enrichment_log (enriched_at
 -- ================================================================
 -- TABLE 2: ca_settled_events  (MASTER TABLE)
 -- Written by:  ca-materializer (idempotent upsert)
--- Read by:     ca-api (with Caffeine cache)
+-- Read by:     ca-confirmations-api (with Caffeine cache)
 -- Purpose:     Authoritative post-settlement CA record.
 --              Source of truth for custody / tax / reconciliation.
 -- ================================================================

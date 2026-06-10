@@ -1,0 +1,57 @@
+# Production-like application topology.
+#
+# This file intentionally does not start Kafka, PostgreSQL, or the legacy
+# reference-data adapter. In production those are managed platform services.
+# Use ../sandbox/docker-compose.yml as a local testing overlay.
+name: ca-iso20022
+
+services:
+
+  ca-producer:
+    image: ${CA_PRODUCER_IMAGE:-ca-producer:0.0.1-SNAPSHOT}
+    ports: ["${CA_PRODUCER_PORT:-8081}:8081"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-productive}
+      CA_KAFKA_BOOTSTRAP_SERVERS: ${CA_KAFKA_BOOTSTRAP_SERVERS}
+    restart: unless-stopped
+
+  ca-formatter:
+    image: ${CA_FORMATTER_IMAGE:-ca-formatter:0.0.1-SNAPSHOT}
+    ports: ["${CA_FORMATTER_PORT:-8082}:8082"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-productive}
+      CA_KAFKA_BOOTSTRAP_SERVERS: ${CA_KAFKA_BOOTSTRAP_SERVERS}
+    restart: unless-stopped
+
+  ca-enricher:
+    image: ${CA_ENRICHER_IMAGE:-ca-enricher:0.0.1-SNAPSHOT}
+    ports: ["${CA_ENRICHER_PORT:-8083}:8083"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-productive}
+      CA_KAFKA_BOOTSTRAP_SERVERS: ${CA_KAFKA_BOOTSTRAP_SERVERS}
+      CA_DB_URL: ${CA_DB_URL}
+      CA_DB_USERNAME: ${CA_DB_USERNAME}
+      CA_DB_PASSWORD: ${CA_DB_PASSWORD}
+      CA_REFERENCE_DATA_URL: ${CA_REFERENCE_DATA_URL}
+    restart: unless-stopped
+
+  ca-materializer:
+    image: ${CA_MATERIALIZER_IMAGE:-ca-materializer:0.0.1-SNAPSHOT}
+    ports: ["${CA_MATERIALIZER_PORT:-8084}:8084"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-productive}
+      CA_KAFKA_BOOTSTRAP_SERVERS: ${CA_KAFKA_BOOTSTRAP_SERVERS}
+      CA_DB_URL: ${CA_DB_URL}
+      CA_DB_USERNAME: ${CA_DB_USERNAME}
+      CA_DB_PASSWORD: ${CA_DB_PASSWORD}
+    restart: unless-stopped
+
+  ca-confirmations-api:
+    image: ${CA_CONFIRMATIONS_API_IMAGE:-ca-confirmations-api:0.0.1-SNAPSHOT}
+    ports: ["${CA_CONFIRMATIONS_API_PORT:-8085}:8085"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-productive}
+      CA_DB_URL: ${CA_DB_URL}
+      CA_DB_USERNAME: ${CA_DB_USERNAME}
+      CA_DB_PASSWORD: ${CA_DB_PASSWORD}
+    restart: unless-stopped

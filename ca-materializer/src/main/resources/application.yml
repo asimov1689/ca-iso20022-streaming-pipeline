@@ -8,18 +8,18 @@ spring:
     virtual:
       enabled: true
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${CA_KAFKA_BOOTSTRAP_SERVERS}
     consumer:
       group-id: ca-materializer-group
-      auto-offset-reset: earliest
+      auto-offset-reset: latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: com.gagroup.ca.model
   datasource:
-    url: jdbc:postgresql://localhost:5432/caevents
-    username: causer
-    password: capass
+    url: ${CA_DB_URL}
+    username: ${CA_DB_USERNAME}
+    password: ${CA_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate

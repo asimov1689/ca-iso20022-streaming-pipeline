@@ -9,6 +9,10 @@ allprojects {
     repositories { mavenCentral() }
 }
 
+ext {
+    testcontainersVersion = '1.21.4'
+}
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'checkstyle'
@@ -74,20 +78,12 @@ subprojects {
         }
         shouldRunAfter test
 
-        // Cross-platform Docker socket detection
-        if (System.getProperty('os.name').toLowerCase().contains('mac')) {
-            def rawSocket = new File("${System.getProperty('user.home')}/Library/Containers/com.docker.docker/Data/docker.raw.sock")
-            if (rawSocket.exists()) {
-                println "Setting DOCKER_HOST to ${rawSocket.absolutePath}"
-                environment 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
-                environment 'DOCKER_API_VERSION', '1.45'
-                environment 'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', rawSocket.absolutePath
-                systemProperty 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
-                systemProperty 'DOCKER_API_VERSION', '1.45'
-                systemProperty 'docker.host', "unix://${rawSocket.absolutePath}"
-                systemProperty 'docker.api.version', '1.45'
-            } else {
-                println "Raw socket NOT found at ${rawSocket.absolutePath}"
+        // Testcontainers should auto-detect Docker. For constrained sandboxes,
+        // pass DOCKER_HOST / TESTCONTAINERS_* from the shell or CI environment.
+        ['DOCKER_HOST', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH', 'DOCKER_CONFIG',
+         'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', 'TESTCONTAINERS_RYUK_DISABLED'].each { name ->
+            if (System.getenv(name)) {
+                environment name, System.getenv(name)
             }
         }
     }
@@ -113,14 +109,16 @@ subprojects {
         testRuntimeOnly     'org.junit.platform:junit-platform-launcher'
 
         // Testcontainers — available in integration and system tests
-        integrationTestImplementation 'org.testcontainers:testcontainers:1.20.1'
-        integrationTestImplementation 'org.testcontainers:kafka:1.20.1'
-        integrationTestImplementation 'org.testcontainers:postgresql:1.20.1'
-        integrationTestImplementation 'org.testcontainers:junit-jupiter:1.20.1'
+        integrationTestImplementation platform("org.testcontainers:testcontainers-bom:${rootProject.testcontainersVersion}")
+        integrationTestImplementation 'org.testcontainers:testcontainers'
+        integrationTestImplementation 'org.testcontainers:kafka'
+        integrationTestImplementation 'org.testcontainers:postgresql'
+        integrationTestImplementation 'org.testcontainers:junit-jupiter'
 
         // WireMock — contract tests only
         contractTestImplementation 'org.wiremock:wiremock-standalone:3.3.1'
-        contractTestImplementation 'org.testcontainers:junit-jupiter:1.20.1'
+        contractTestImplementation platform("org.testcontainers:testcontainers-bom:${rootProject.testcontainersVersion}")
+        contractTestImplementation 'org.testcontainers:junit-jupiter'
     }
 
     test {

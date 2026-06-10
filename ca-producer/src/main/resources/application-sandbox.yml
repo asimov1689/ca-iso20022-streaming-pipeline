@@ -1,0 +1,3 @@
+spring:
+  kafka:
+    bootstrap-servers: ${CA_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}

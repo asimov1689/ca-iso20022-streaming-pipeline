@@ -8,9 +8,9 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:postgresql://localhost:5432/caevents
-    username: causer
-    password: capass
+    url: ${CA_DB_URL}
+    username: ${CA_DB_USERNAME}
+    password: ${CA_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate

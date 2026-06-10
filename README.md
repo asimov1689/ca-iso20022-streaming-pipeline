@@ -79,7 +79,7 @@ reference data, and materialise a queryable master table — served via a Caffei
 | Caching | Caffeine | via Spring Cache |
 | Concurrency | Virtual Threads | Java 21 (`spring.threads.virtual.enabled`) |
 | Testing | JUnit 5, Mockito, AssertJ | via Spring Boot Test |
-| Containers | Testcontainers | 1.20.1 |
+| Containers | Testcontainers | 1.21.4 |
 | Contract Testing | WireMock | 3.3.1 |
 | Static Analysis | Checkstyle | 10.17.0 (Google style) |
 | CI | GitHub Actions | ubuntu-latest |
@@ -117,8 +117,10 @@ cd ca-iso20022-streaming-pipeline
 # 2. Build all JARs (skip tests for speed)
 ./gradlew clean build -x test
 
-# 3. Start the full stack
-docker compose up --build
+# 3. Start the full sandbox stack
+docker compose --env-file infrastructure/sandbox/sandbox.env \
+  -f infrastructure/productive/docker-compose.yml \
+  -f infrastructure/sandbox/docker-compose.yml up --build
 
 # 4. Submit a test MT566 confirmation
 curl -X POST http://localhost:8081/api/v1/ingest/mt566 \
@@ -208,7 +210,41 @@ The project enforces a 4-layer test pyramid. Each layer runs in isolation in CI.
 ```
 
 > **E2E prerequisite:** Docker images must be built first —
-> `./gradlew build -x test && docker compose build`
+> `./gradlew build -x test && docker compose --env-file infrastructure/sandbox/sandbox.env -f infrastructure/productive/docker-compose.yml -f infrastructure/sandbox/docker-compose.yml build`
+
+---
+
+## Runtime Profiles
+
+The repo separates productive runtime configuration from the sandbox used for local and CI validation.
+
+| Runtime | Purpose | Configuration source |
+|---|---|---|
+| `productive` | Production-like deployment contract for app containers only | Platform environment variables plus `infrastructure/productive/docker-compose.yml` |
+| `sandbox` | Local full-stack testing with Kafka, PostgreSQL, and the COBOL stub | `infrastructure/sandbox/sandbox.env` plus `infrastructure/sandbox/docker-compose.yml` |
+
+Productive runtime expects managed dependencies and does not provide local defaults for secrets or infrastructure endpoints:
+
+```bash
+export SPRING_PROFILES_ACTIVE=productive
+export CA_KAFKA_BOOTSTRAP_SERVERS=kafka.prod.example:9092
+export CA_DB_URL=jdbc:postgresql://postgres.prod.example:5432/caevents
+export CA_DB_USERNAME=ca_app
+export CA_DB_PASSWORD='<from-secret-store>'
+export CA_REFERENCE_DATA_URL=https://reference-data.example
+
+docker compose -f infrastructure/productive/docker-compose.yml up -d
+```
+
+Sandbox runtime is isolated and disposable:
+
+```bash
+docker compose --env-file infrastructure/sandbox/sandbox.env \
+  -f infrastructure/productive/docker-compose.yml \
+  -f infrastructure/sandbox/docker-compose.yml up --build
+```
+
+Do not use sandbox credentials or `application-sandbox.yml` defaults outside local testing and CI-style validation.
 
 ### Test counts by service
 
@@ -237,9 +273,10 @@ ca-iso20022-streaming-pipeline/
 ├── ca-confirmations-api/       # CQRS read API
 │   └── src/systemTest/         # Full-stack E2E tests
 ├── infrastructure/
-│   └── postgres/init.sql       # DDL for ca_settled_events + ca_enrichment_log
+│   ├── productive/             # Production-like app container topology
+│   ├── sandbox/                # Local disposable STP test stack
+│   └── shared/                 # Shared DDL and Kafka topic bootstrap assets
 ├── config/checkstyle/          # Google Java Style rules
-├── docker-compose.yml          # Local dev stack
 ├── .github/workflows/ci.yml    # GitHub Actions — 4-job CI pipeline
 └── build.gradle                # Root Gradle — shared deps, source sets, Checkstyle
 ```

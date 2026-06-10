@@ -5,10 +5,10 @@ spring:
   application:
     name: ca-enricher
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${CA_KAFKA_BOOTSTRAP_SERVERS}
     consumer:
       group-id: ca-enricher-group
-      auto-offset-reset: earliest
+      auto-offset-reset: latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
@@ -17,12 +17,12 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   datasource:
-    url: jdbc:postgresql://localhost:5432/caevents
-    username: causer
-    password: capass
+    url: ${CA_DB_URL}
+    username: ${CA_DB_USERNAME}
+    password: ${CA_DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
   cache:
     type: caffeine
@@ -31,4 +31,4 @@ spring:
 
 cobol:
   stub:
-    url: http://localhost:8086
+    url: ${CA_REFERENCE_DATA_URL}

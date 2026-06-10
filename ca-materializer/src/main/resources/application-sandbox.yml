@@ -1,0 +1,9 @@
+spring:
+  kafka:
+    bootstrap-servers: ${CA_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+  datasource:
+    url: ${CA_DB_URL:jdbc:postgresql://localhost:5432/caevents}
+    username: ${CA_DB_USERNAME:causer}
+    password: ${CA_DB_PASSWORD:capass}
