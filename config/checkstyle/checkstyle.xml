@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+    Enterprise Google Java Style — ca-iso20022-streaming-pipeline
+    Key decisions:
+      - No Javadoc requirement (project convention: no comments unless non-obvious)
+      - Line length 120 (modern monitors; Kafka env maps are verbose)
+      - Tabs forbidden — 4-space indent enforced via FileTabCharacter
+      - Suppressions file handles test-specific relaxations
+-->
+<module name="Checker">
+    <property name="severity"        value="error"/>
+    <property name="fileExtensions"  value="java"/>
+
+    <module name="SuppressionFilter">
+        <property name="file" value="${config_loc}/suppressions.xml"/>
+    </module>
+
+    <!-- ── File-level ─────────────────────────────────────────────────────── -->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <property name="ignorePattern" value="^(import|.*@SuppressWarnings).*$"/>
+    </module>
+
+    <module name="NewlineAtEndOfFile"/>
+
+    <!-- Trailing whitespace at file level -->
+    <module name="RegexpSingleline">
+        <property name="format"  value="\s+$"/>
+        <property name="message" value="Line has trailing whitespace."/>
+    </module>
+
+    <!-- ── TreeWalker ─────────────────────────────────────────────────────── -->
+    <module name="TreeWalker">
+
+        <!-- Imports -->
+        <module name="AvoidStarImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+
+        <!-- Naming -->
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="ParameterName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName"/>
+        <module name="ConstantName"/>
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+        </module>
+
+        <!-- Braces — always required, K&R style -->
+        <module name="NeedBraces"/>
+        <module name="LeftCurly"/>
+        <module name="RightCurly"/>
+
+        <!-- Empty constructs -->
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+        </module>
+        <module name="EmptyCatchBlock">
+            <property name="exceptionVariableName" value="expected|ignored"/>
+        </module>
+
+        <!-- Modifier order: public protected private abstract default static final ... -->
+        <module name="ModifierOrder"/>
+        <module name="RedundantModifier"/>
+
+        <!-- Whitespace -->
+        <module name="GenericWhitespace"/>
+        <module name="MethodParamPad"/>
+        <module name="ParenPad"/>
+
+        <!-- Misc -->
+        <module name="UpperEll"/>
+        <module name="ArrayTypeStyle"/>
+        <module name="OneStatementPerLine"/>
+        <module name="MultipleVariableDeclarations"/>
+
+    </module>
+</module>

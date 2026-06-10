@@ -1,5 +1,6 @@
 server:
   port: 8083
+
 spring:
   application:
     name: ca-enricher
@@ -8,6 +9,10 @@ spring:
     consumer:
       group-id: ca-enricher-group
       auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.gagroup.ca.model"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -18,6 +23,12 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=3600s
+
 cobol:
-  stub-url: http://localhost:8086
+  stub:
+    url: http://localhost:8086

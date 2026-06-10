@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+    <!--
+        Tests use literals and multi-statement lambdas that would
+        trip OneStatementPerLine and NeedBraces inside Awaitility blocks.
+        The structural checks (naming, imports, tabs) still apply.
+    -->
+    <suppress checks="OneStatementPerLine"
+              files=".*Test\.java"/>
+
+    <!-- Gradle-generated build dirs — should never be checked, but belt-and-suspenders -->
+    <suppress checks=".*"
+              files="[/\\]build[/\\].*"/>
+</suppressions>

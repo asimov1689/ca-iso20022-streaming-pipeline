@@ -7,6 +7,6 @@ include(
         'ca-enricher',
         'ca-cobol-stub',
         'ca-materializer',
-        'ca-api'
+        'ca-confirmations-api'
 )
 

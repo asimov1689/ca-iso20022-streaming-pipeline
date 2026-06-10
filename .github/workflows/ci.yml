@@ -1,0 +1,178 @@
+# GitHub Actions CI Pipeline
+# ca-iso20022-streaming-pipeline
+# Free for public repos — 2,000 min/month on ubuntu-latest
+#
+# JOBS:
+#   0. checkstyle        — every push, ~30s, no Docker
+#   1. unit-tests        — every push, ~1-2 min, no Docker
+#   2. integration-tests — every push, ~4-6 min, Testcontainers
+#   3. contract-tests    — every push, ~1-2 min, WireMock only
+#   4. system-tests      — PR to main + push to main only, ~8-10 min
+#
+# STATUS BADGE (add to README.md):
+# ![CI](https://github.com/asimov1689/ca-iso20022-streaming-pipeline/actions/workflows/ci.yml/badge.svg)
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]          # every branch on every push
+  pull_request:
+    branches: [main]          # PRs targeting main
+
+jobs:
+
+  # ── Job 0: Checkstyle ────────────────────────────────────────────────────────
+  checkstyle:
+    name: Checkstyle (Google Java Style)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Run Checkstyle
+        run: ./gradlew checkstyleMain
+
+      - name: Upload Checkstyle reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: checkstyle-reports
+          path: "**/build/reports/checkstyle/**"
+
+  # ── Job 1: Unit Tests ────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: checkstyle        # style must pass before tests run
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew test
+
+      - name: Upload unit test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: "**/build/reports/tests/test/**"
+
+  # ── Job 2: Integration Tests ─────────────────────────────────────────────────
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests        # only run if unit tests pass
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      # Docker is available on ubuntu-latest by default — no setup needed
+      # Testcontainers pulls Kafka and PostgreSQL images automatically
+      - name: Run integration tests
+        run: ./gradlew integrationTest
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "false"
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: "**/build/reports/tests/integrationTest/**"
+
+  # ── Job 3: Contract Tests ────────────────────────────────────────────────────
+  contract-tests:
+    name: Contract Tests (WireMock)
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Run contract tests
+        run: ./gradlew contractTest
+
+      - name: Upload contract test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-test-results
+          path: "**/build/reports/tests/contractTest/**"
+
+  # ── Job 4: System Tests (E2E) ────────────────────────────────────────────────
+  system-tests:
+    name: System Tests (E2E — Full Stack)
+    runs-on: ubuntu-latest
+    needs: [integration-tests, contract-tests]  # both must pass first
+    # Only run on push to main or PR to main — full stack is expensive
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build all Docker images
+        run: ./gradlew clean build -x test && docker compose build
+
+      - name: Run end-to-end system tests
+        run: ./gradlew :ca-confirmations-api:systemTest
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "false"
+
+      - name: Upload system test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: system-test-results
+          path: "ca-confirmations-api/build/reports/tests/systemTest/**"

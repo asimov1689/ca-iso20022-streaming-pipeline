@@ -1,0 +1,31 @@
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Spring Boot
+*.log
+logs/
+
+# Java heap dumps and profiling
+*.hprof
+*.jfr
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Environment / secrets
+.env
+*.env.local

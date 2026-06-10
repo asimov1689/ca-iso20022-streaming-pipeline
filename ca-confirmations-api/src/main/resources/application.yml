@@ -1,0 +1,29 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: ca-confirmations-api
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/caevents
+    username: causer
+    password: capass
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  cache:
+    type: caffeine
+    caffeine:
+      # 30s TTL — CA confirmations can be corrected within minutes
+      # maximumSize=1000 covers concurrent ISIN/eventType query combinations
+      spec: maximumSize=1000,expireAfterWrite=30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
