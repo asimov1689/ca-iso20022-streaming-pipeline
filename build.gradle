@@ -73,17 +73,23 @@ subprojects {
             showStandardStreams = true
         }
         shouldRunAfter test
-        def dockerSocket = "${System.getProperty('user.home')}/Library/Containers/com.docker.docker/Data/docker.raw.sock"
-        environment 'DOCKER_HOST', "unix://${dockerSocket}"
-        environment 'DOCKER_API_VERSION', '1.40'
-        environment 'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', '/var/run/docker.sock'
-        environment 'TESTCONTAINERS_DOCKER_CLIENT_STRATEGY',
-                'org.testcontainers.dockerclient.EnvironmentAndSystemPropertyClientProviderStrategy'
-        systemProperty 'docker.host', "unix://${dockerSocket}"
-        systemProperty 'docker.api.version', '1.40'
-        systemProperty 'api.version', '1.40'
-        systemProperty 'docker.client.strategy',
-                'org.testcontainers.dockerclient.EnvironmentAndSystemPropertyClientProviderStrategy'
+
+        // Cross-platform Docker socket detection
+        if (System.getProperty('os.name').toLowerCase().contains('mac')) {
+            def rawSocket = new File("${System.getProperty('user.home')}/Library/Containers/com.docker.docker/Data/docker.raw.sock")
+            if (rawSocket.exists()) {
+                println "Setting DOCKER_HOST to ${rawSocket.absolutePath}"
+                environment 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
+                environment 'DOCKER_API_VERSION', '1.45'
+                environment 'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', rawSocket.absolutePath
+                systemProperty 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
+                systemProperty 'DOCKER_API_VERSION', '1.45'
+                systemProperty 'docker.host', "unix://${rawSocket.absolutePath}"
+                systemProperty 'docker.api.version', '1.45'
+            } else {
+                println "Raw socket NOT found at ${rawSocket.absolutePath}"
+            }
+        }
     }
 
     tasks.register('contractTest', Test) {

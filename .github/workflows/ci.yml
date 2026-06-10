@@ -162,17 +162,6 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Pre-pull Docker Hub images
-        run: |
-          docker pull confluentinc/cp-kafka:7.5.0
-          docker pull postgres:15-alpine
-
       - name: Build all Docker images
         run: ./gradlew clean build -x test && docker compose build
 

@@ -65,6 +65,7 @@ services:
       retries: 5
 
   ca-cobol-stub:
+    image: ca-cobol-stub:0.0.1-SNAPSHOT
     build: ./ca-cobol-stub
     ports: ["8086:8086"]
     healthcheck:
@@ -73,6 +74,7 @@ services:
       retries: 5
 
   ca-producer:
+    image: ca-producer:0.0.1-SNAPSHOT
     build: ./ca-producer
     ports: ["8081:8081"]
     depends_on:
@@ -81,6 +83,7 @@ services:
       SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:9092
 
   ca-formatter:
+    image: ca-formatter:0.0.1-SNAPSHOT
     build: ./ca-formatter
     ports: ["8082:8082"]
     depends_on:
@@ -89,6 +92,7 @@ services:
       SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:9092
 
   ca-enricher:
+    image: ca-enricher:0.0.1-SNAPSHOT
     build: ./ca-enricher
     ports: ["8083:8083"]
     depends_on:
@@ -103,6 +107,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: capass
 
   ca-materializer:
+    image: ca-materializer:0.0.1-SNAPSHOT
     build: ./ca-materializer
     ports: ["8084:8084"]
     depends_on:
@@ -115,6 +120,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: capass
 
   ca-confirmations-api:
+    image: ca-confirmations-api:0.0.1-SNAPSHOT
     build: ./ca-confirmations-api
     ports: ["8085:8085"]
     depends_on:
