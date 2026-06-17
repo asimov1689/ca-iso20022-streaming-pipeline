@@ -1,4 +1,4 @@
-package com.gagroup.ca.confirmations.api.system;
+package com.gagroup.ca.confirmations.api.e2e;
 
 import com.gagroup.ca.model.RawConfirmationEvent;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -31,14 +31,8 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-/**
- * E2E Entry Point A — Kafka Direct.
- * Publishes a RawConfirmationEvent directly to ca.confirmations.raw topic.
- * Tests the CORE PIPELINE: formatter -> enricher -> materializer -> api.
- * ca-producer is NOT involved — this isolates the pipeline from the adapter.
- */
 @Testcontainers
-class PipelineKafkaEntryTest {
+public class KafkaToRestOpenApiE2ETest {
 
     static final Network NETWORK = Network.newNetwork();
 
@@ -128,45 +122,41 @@ class PipelineKafkaEntryTest {
     private final RestTemplate rest = new RestTemplate();
 
     @Test
-    @DisplayName("Entry Point A — Kafka Direct: MT566 confirmation flows " +
-                 "formatter->enricher->materializer->api")
-    void kafkaDirectMt566ConfirmationShouldAppearInMasterTableViaApi() throws Exception {
-        // Arrange
+    @DisplayName("Kafka to REST E2E: raw confirmation becomes queryable through OpenAPI-backed API")
+    void kafkaMessageShouldReachRestApiAndExposeOpenApiContract() throws Exception {
         String messageId = UUID.randomUUID().toString();
-        String mt566     = "CONF-20261231-001|CH0012221716|DVCA|20261231|2500.00|CHF|ACC-001|1000|SETT";
-        var    rawEvent  = new RawConfirmationEvent(messageId, "MT566", mt566, Instant.now());
-        var    producer  = buildKafkaProducer();
+        String mt566 = "CONF-20261231-001|CH0012221716|DVCA|20261231|2500.00|CHF|ACC-001|1000|SETT";
+        var rawEvent = new RawConfirmationEvent(messageId, "MT566", mt566, Instant.now());
+        var producer = buildKafkaProducer();
 
-        // Act — publish directly to Kafka, bypassing ca-producer adapter
         producer.send(new ProducerRecord<>("ca.confirmations.raw", messageId, rawEvent)).get(10, TimeUnit.SECONDS);
         producer.flush();
         producer.close();
 
-        // Assert — wait up to 30s for event to propagate through full pipeline
-        String apiUrl = apiBaseUrl() + "/api/v1/settled-confirmations/" + messageId;
+        String eventUrl = apiBaseUrl() + "/api/v1/settled-confirmations/" + messageId;
         await().atMost(30, TimeUnit.SECONDS).pollInterval(Duration.ofSeconds(2))
                 .untilAsserted(() -> {
-                    ResponseEntity<Map> response = rest.getForEntity(apiUrl, Map.class);
+                    ResponseEntity<Map> response = rest.getForEntity(eventUrl, Map.class);
                     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                     assertThat(response.getBody().get("isin")).isEqualTo("CH0012221716");
                     assertThat(response.getBody().get("eventType")).isEqualTo("DVCA");
-                    assertThat(response.getBody().get("securityName")).isEqualTo("Nestle SA");
-                    assertThat(response.getBody().get("confirmationRef"))
-                            .isEqualTo("CONF-20261231-001");
+                    assertThat(response.getBody().get("securityName")).isEqualTo("Arthur Dent Holdings");
+                    assertThat(response.getBody().get("confirmationRef")).isEqualTo("CONF-20261231-001");
                 });
+
+        ResponseEntity<Map> openApi = rest.getForEntity(apiBaseUrl() + "/v3/api-docs", Map.class);
+        assertThat(openApi.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(openApi.getBody().get("openapi")).asString().startsWith("3.");
+        Map<String, Object> paths = (Map<String, Object>) openApi.getBody().get("paths");
+        assertThat(paths).containsKey("/api/v1/settled-confirmations/{messageId}");
     }
 
     private KafkaProducer<String, RawConfirmationEvent> buildKafkaProducer() {
         var props = new Properties();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,  kafkaBootstrap());
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,   StringSerializer.class);
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         return new KafkaProducer<>(props);
-    }
-
-    // External listener port used by test code running on the host
-    static String kafkaBootstrap() {
-        return KAFKA.getBootstrapServers();
     }
 
     String apiBaseUrl() {

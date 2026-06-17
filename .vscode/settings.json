@@ -1,0 +1,10 @@
+{
+  "java.test.config": [
+    {
+      "name": "ca-confirmations-api systemTest",
+      "workingDirectory": "${workspaceFolder}",
+      "vmArgs": []
+    }
+  ],
+  "java.test.defaultConfig": "ca-confirmations-api systemTest"
+}

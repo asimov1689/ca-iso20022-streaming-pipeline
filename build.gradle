@@ -126,3 +126,45 @@ subprojects {
         testLogging { events 'passed', 'skipped', 'failed' }
     }
 }
+
+tasks.register('buildSystemTestImages', Exec) {
+    description = 'Builds Docker images used by full-stack system tests'
+    group = 'verification'
+    dependsOn(
+            ':ca-producer:bootJar',
+            ':ca-formatter:bootJar',
+            ':ca-enricher:bootJar',
+            ':ca-cobol-stub:bootJar',
+            ':ca-materializer:bootJar',
+            ':ca-confirmations-api:bootJar'
+    )
+    commandLine 'docker', 'compose',
+            '--env-file', 'infrastructure/sandbox/sandbox.env',
+            '-f', 'infrastructure/productive/docker-compose.yml',
+            '-f', 'infrastructure/sandbox/docker-compose.yml',
+            'build'
+}
+
+tasks.register('endToEndTest') {
+    description = 'Builds service images and runs the full-stack pipeline system tests'
+    group = 'verification'
+    dependsOn ':ca-confirmations-api:systemTest'
+}
+
+tasks.register('allLayersEndToEnd') {
+    description = 'Runs checkstyle, unit, contract, integration, image build, and full-stack system tests'
+    group = 'verification'
+    dependsOn subprojects.collect { "${it.path}:checkstyleMain" }
+    dependsOn subprojects.collect { "${it.path}:test" }
+    dependsOn subprojects.collect { "${it.path}:contractTest" }
+    dependsOn subprojects.collect { "${it.path}:integrationTest" }
+    dependsOn ':ca-confirmations-api:systemTest'
+}
+
+gradle.projectsEvaluated {
+    project(':ca-confirmations-api').tasks.named('systemTest') {
+        dependsOn rootProject.tasks.named('buildSystemTestImages')
+        mustRunAfter subprojects.collect { project("${it.path}").tasks.named('integrationTest') }
+        outputs.upToDateWhen { false }
+    }
+}

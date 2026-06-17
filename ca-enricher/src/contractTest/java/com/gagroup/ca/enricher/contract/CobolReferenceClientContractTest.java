@@ -46,8 +46,8 @@ class CobolReferenceClientContractTest {
         wm.stubFor(get(urlEqualTo("/cobol/reference/CH0012221716"))
                 .willReturn(okJson("""
                         {
-                          "securityName":    "Nestle SA",
-                          "issuerLei":       "PBLD0EJDB5FWOLXP3B76",
+                          "securityName":    "Arthur Dent Holdings",
+                          "issuerLei":       "ARTHURDENTLEI000001",
                           "marketOfListing": "GA Exchange",
                           "settleCcy":       "CHF"
                         }
@@ -61,7 +61,7 @@ class CobolReferenceClientContractTest {
         assertThat(result).containsKey("issuerLei");
         assertThat(result).containsKey("marketOfListing");
         assertThat(result).containsKey("settleCcy");
-        assertThat(result.get("securityName")).isEqualTo("Nestle SA");
+        assertThat(result.get("securityName")).isEqualTo("Arthur Dent Holdings");
         assertThat(result.get("marketOfListing")).isEqualTo("GA Exchange");
 
         // Assert — provider was called with correct URL path
@@ -123,7 +123,7 @@ class CobolReferenceClientContractTest {
         // Arrange
         wm.stubFor(get(urlEqualTo("/cobol/reference/CH0012255580"))
                 .willReturn(okJson("""
-                        {"securityName":"ABB Ltd","issuerLei":"529900WOYRUK9N8J1T75",
+                        {"securityName":"Ford Prefect Ltd","issuerLei":"FORDPREFECTLEI00001",
                          "marketOfListing":"GA Exchange","settleCcy":"CHF"}
                         """)));
 

@@ -19,7 +19,7 @@ class CobolStubIntegrationTest {
     @Autowired TestRestTemplate rest;
 
     @Test
-    void lookupNestleIsinReturnsOkWithCorrectSecurityAndMarket() {
+    void lookupArthurDentIsinReturnsOkWithCorrectSecurityAndMarket() {
         // Arrange
         String isin = "CH0012221716";
 
@@ -29,14 +29,14 @@ class CobolStubIntegrationTest {
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).containsEntry("securityName", "Nestle SA");
+        assertThat(response.getBody()).containsEntry("securityName", "Arthur Dent Holdings");
         assertThat(response.getBody()).containsEntry("marketOfListing", "GA Exchange");
-        assertThat(response.getBody()).containsEntry("issuerLei", "PBLD0EJDB5FWOLXP3B76");
+        assertThat(response.getBody()).containsEntry("issuerLei", "ARTHURDENTLEI000001");
         assertThat(response.getBody()).containsEntry("settleCcy", "CHF");
     }
 
     @Test
-    void lookupWrthlyIsinReturnsOkWithCorrectSecurityAndMarket() {
+    void lookupMarvinIsinReturnsOkWithCorrectSecurityAndMarket() {
         // Arrange
         String isin = "CH0012032048";
 
@@ -46,9 +46,9 @@ class CobolStubIntegrationTest {
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).containsEntry("securityName", "WRTHLY Group AG");
+        assertThat(response.getBody()).containsEntry("securityName", "Marvin Android Group");
         assertThat(response.getBody()).containsEntry("marketOfListing", "GA Exchange");
-        assertThat(response.getBody()).containsEntry("issuerLei", "BFM8T61CT2L1QCEMIK50");
+        assertThat(response.getBody()).containsEntry("issuerLei", "MARVINANDROIDLEI001");
     }
 
     @Test

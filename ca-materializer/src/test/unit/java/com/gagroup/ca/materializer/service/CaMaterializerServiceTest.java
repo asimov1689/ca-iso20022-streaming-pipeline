@@ -37,7 +37,7 @@ class CaMaterializerServiceTest {
                 "20261231", new BigDecimal("2500.00"), "CHF", "ACC-001",
                 new BigDecimal("1000"), "SETT", "MT566", Instant.now());
         return new EnrichedConfirmationEvent(
-                base, "Nestle SA", "PBLD0EJDB5FWOLXP3B76", "GA Exchange", "CHF", Instant.now());
+                base, "Arthur Dent Holdings", "ARTHURDENTLEI000001", "GA Exchange", "CHF", Instant.now());
     }
 
     @Test
@@ -78,8 +78,8 @@ class CaMaterializerServiceTest {
         var captor = ArgumentCaptor.forClass(CaSettledEventEntity.class);
         verify(repository).save(captor.capture());
         var saved = captor.getValue();
-        assertThat(saved.getSecurityName()).isEqualTo("Nestle SA");
-        assertThat(saved.getIssuerLei()).isEqualTo("PBLD0EJDB5FWOLXP3B76");
+        assertThat(saved.getSecurityName()).isEqualTo("Arthur Dent Holdings");
+        assertThat(saved.getIssuerLei()).isEqualTo("ARTHURDENTLEI000001");
         assertThat(saved.getMarketOfListing()).isEqualTo("GA Exchange");
         assertThat(saved.getSettleCcy()).isEqualTo("CHF");
         assertThat(saved.getEnrichedAt()).isNotNull();

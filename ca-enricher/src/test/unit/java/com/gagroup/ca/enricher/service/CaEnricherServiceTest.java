@@ -34,9 +34,9 @@ class CaEnricherServiceTest {
 
     CaEnricherService service;
 
-    private static final Map<String, String> NESTLE_REF = Map.of(
-            "securityName",    "Nestle SA",
-            "issuerLei",       "PBLD0EJDB5FWOLXP3B76",
+    private static final Map<String, String> ARTHUR_DENT_REF = Map.of(
+            "securityName",    "Arthur Dent Holdings",
+            "issuerLei",       "ARTHURDENTLEI000001",
             "marketOfListing", "GA Exchange",
             "settleCcy",       "CHF");
 
@@ -55,7 +55,7 @@ class CaEnricherServiceTest {
     void enrichKnownIsinShouldPublishEnrichedEventWithRefData() {
         // Arrange
         var conf = confirmation("MSG-001", "CH0012221716");
-        when(cobolClient.fetchRefData("CH0012221716")).thenReturn(NESTLE_REF);
+        when(cobolClient.fetchRefData("CH0012221716")).thenReturn(ARTHUR_DENT_REF);
         when(kafka.send(anyString(), anyString(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
         when(logRepo.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -66,8 +66,8 @@ class CaEnricherServiceTest {
         // Assert
         var captor = ArgumentCaptor.forClass(EnrichedConfirmationEvent.class);
         verify(kafka).send(eq("ca.confirmations.enriched"), eq("MSG-001"), captor.capture());
-        assertThat(captor.getValue().securityName()).isEqualTo("Nestle SA");
-        assertThat(captor.getValue().issuerLei()).isEqualTo("PBLD0EJDB5FWOLXP3B76");
+        assertThat(captor.getValue().securityName()).isEqualTo("Arthur Dent Holdings");
+        assertThat(captor.getValue().issuerLei()).isEqualTo("ARTHURDENTLEI000001");
         assertThat(captor.getValue().marketOfListing()).isEqualTo("GA Exchange");
         assertThat(captor.getValue().settleCcy()).isEqualTo("CHF");
         assertThat(captor.getValue().base().isin()).isEqualTo("CH0012221716");
@@ -77,7 +77,7 @@ class CaEnricherServiceTest {
     void enrichKnownIsinShouldSaveAuditLogWithCorrectFields() {
         // Arrange
         var conf = confirmation("MSG-002", "CH0012221716");
-        when(cobolClient.fetchRefData("CH0012221716")).thenReturn(NESTLE_REF);
+        when(cobolClient.fetchRefData("CH0012221716")).thenReturn(ARTHUR_DENT_REF);
         when(kafka.send(anyString(), anyString(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
         when(logRepo.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -90,7 +90,7 @@ class CaEnricherServiceTest {
         verify(logRepo).save(captor.capture());
         assertThat(captor.getValue().getMessageId()).isEqualTo("MSG-002");
         assertThat(captor.getValue().getIsin()).isEqualTo("CH0012221716");
-        assertThat(captor.getValue().getSecurityName()).isEqualTo("Nestle SA");
+        assertThat(captor.getValue().getSecurityName()).isEqualTo("Arthur Dent Holdings");
         assertThat(captor.getValue().getMarketOfListing()).isEqualTo("GA Exchange");
         assertThat(captor.getValue().getEnrichedAt()).isNotNull();
     }
@@ -121,7 +121,7 @@ class CaEnricherServiceTest {
     void enrichShouldAlwaysPublishToEnrichedTopicEvenOnFallback() {
         // Arrange
         var conf = confirmation("MSG-004", "CH0012221716");
-        when(cobolClient.fetchRefData(any())).thenReturn(NESTLE_REF);
+        when(cobolClient.fetchRefData(any())).thenReturn(ARTHUR_DENT_REF);
         when(kafka.send(anyString(), anyString(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
         when(logRepo.save(any())).thenAnswer(i -> i.getArgument(0));

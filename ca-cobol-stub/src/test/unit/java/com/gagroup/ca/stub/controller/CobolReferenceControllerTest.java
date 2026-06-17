@@ -15,57 +15,57 @@ class CobolReferenceControllerTest {
     @Autowired MockMvc mvc;
 
     @Test
-    void lookupKnownIsinNestleReturnsCorrectRefData() throws Exception {
+    void lookupKnownIsinArthurDentReturnsCorrectRefData() throws Exception {
         // Arrange
         String isin = "CH0012221716";
 
         // Act & Assert
         mvc.perform(get("/cobol/reference/{isin}", isin))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.securityName").value("Nestle SA"))
-                .andExpect(jsonPath("$.issuerLei").value("PBLD0EJDB5FWOLXP3B76"))
+                .andExpect(jsonPath("$.securityName").value("Arthur Dent Holdings"))
+                .andExpect(jsonPath("$.issuerLei").value("ARTHURDENTLEI000001"))
                 .andExpect(jsonPath("$.marketOfListing").value("GA Exchange"))
                 .andExpect(jsonPath("$.settleCcy").value("CHF"));
     }
 
     @Test
-    void lookupKnownIsinAbbReturnsCorrectRefData() throws Exception {
+    void lookupKnownIsinFordPrefectReturnsCorrectRefData() throws Exception {
         // Arrange
         String isin = "CH0012255580";
 
         // Act & Assert
         mvc.perform(get("/cobol/reference/{isin}", isin))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.securityName").value("ABB Ltd"))
-                .andExpect(jsonPath("$.issuerLei").value("529900WOYRUK9N8J1T75"))
+                .andExpect(jsonPath("$.securityName").value("Ford Prefect Ltd"))
+                .andExpect(jsonPath("$.issuerLei").value("FORDPREFECTLEI00001"))
                 .andExpect(jsonPath("$.marketOfListing").value("GA Exchange"))
                 .andExpect(jsonPath("$.settleCcy").value("CHF"));
     }
 
     @Test
-    void lookupKnownIsinRocheReturnsCorrectRefData() throws Exception {
+    void lookupKnownIsinTrillianReturnsCorrectRefData() throws Exception {
         // Arrange
         String isin = "CH0038863350";
 
         // Act & Assert
         mvc.perform(get("/cobol/reference/{isin}", isin))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.securityName").value("Roche Holding AG"))
-                .andExpect(jsonPath("$.issuerLei").value("HMTNLVUNV8VXAIZQ9B87"))
+                .andExpect(jsonPath("$.securityName").value("Trillian Astra PLC"))
+                .andExpect(jsonPath("$.issuerLei").value("TRILLIANASTRALEI001"))
                 .andExpect(jsonPath("$.marketOfListing").value("GA Exchange"))
                 .andExpect(jsonPath("$.settleCcy").value("CHF"));
     }
 
     @Test
-    void lookupKnownIsinWrthlyReturnsCorrectRefData() throws Exception {
+    void lookupKnownIsinMarvinReturnsCorrectRefData() throws Exception {
         // Arrange
         String isin = "CH0012032048";
 
         // Act & Assert
         mvc.perform(get("/cobol/reference/{isin}", isin))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.securityName").value("WRTHLY Group AG"))
-                .andExpect(jsonPath("$.issuerLei").value("BFM8T61CT2L1QCEMIK50"))
+                .andExpect(jsonPath("$.securityName").value("Marvin Android Group"))
+                .andExpect(jsonPath("$.issuerLei").value("MARVINANDROIDLEI001"))
                 .andExpect(jsonPath("$.marketOfListing").value("GA Exchange"))
                 .andExpect(jsonPath("$.settleCcy").value("CHF"));
     }

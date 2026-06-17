@@ -161,7 +161,7 @@ class PipelineFileIngestE2ETest {
                     ResponseEntity<Map> apiResp = rest.getForEntity(apiUrl, Map.class);
                     assertThat(apiResp.getStatusCode()).isEqualTo(HttpStatus.OK);
                     assertThat(apiResp.getBody().get("isin")).isEqualTo("CH0038863350");
-                    assertThat(apiResp.getBody().get("securityName")).isEqualTo("Roche Holding AG");
+                    assertThat(apiResp.getBody().get("securityName")).isEqualTo("Trillian Astra PLC");
                     assertThat(apiResp.getBody().get("eventType")).isEqualTo("DVCA");
                 });
     }

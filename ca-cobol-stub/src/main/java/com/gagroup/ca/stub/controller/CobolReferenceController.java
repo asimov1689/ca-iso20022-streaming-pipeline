@@ -18,23 +18,23 @@ public class CobolReferenceController {
 
     private static final Map<String, Map<String, String>> REF_DATA = Map.of(
             "CH0012221716", Map.of(
-                    "securityName",    "Nestle SA",
-                    "issuerLei",       "PBLD0EJDB5FWOLXP3B76",
+                    "securityName",    "Arthur Dent Holdings",
+                    "issuerLei",       "ARTHURDENTLEI000001",
                     "marketOfListing", "GA Exchange",
                     "settleCcy",       "CHF"),
             "CH0012255580", Map.of(
-                    "securityName",    "ABB Ltd",
-                    "issuerLei",       "529900WOYRUK9N8J1T75",
+                    "securityName",    "Ford Prefect Ltd",
+                    "issuerLei",       "FORDPREFECTLEI00001",
                     "marketOfListing", "GA Exchange",
                     "settleCcy",       "CHF"),
             "CH0038863350", Map.of(
-                    "securityName",    "Roche Holding AG",
-                    "issuerLei",       "HMTNLVUNV8VXAIZQ9B87",
+                    "securityName",    "Trillian Astra PLC",
+                    "issuerLei",       "TRILLIANASTRALEI001",
                     "marketOfListing", "GA Exchange",
                     "settleCcy",       "CHF"),
             "CH0012032048", Map.of(
-                    "securityName",    "WRTHLY Group AG",
-                    "issuerLei",       "BFM8T61CT2L1QCEMIK50",
+                    "securityName",    "Marvin Android Group",
+                    "issuerLei",       "MARVINANDROIDLEI001",
                     "marketOfListing", "GA Exchange",
                     "settleCcy",       "CHF")
     );

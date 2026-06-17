@@ -66,7 +66,7 @@ class CaMaterializerIntegrationTest {
                 "20261231", new BigDecimal("2500.00"), "CHF", accountId,
                 new BigDecimal("1000"), "SETT", "MT566", Instant.now());
         return new EnrichedConfirmationEvent(
-                base, "Nestle SA", "PBLD0EJDB5FWOLXP3B76", "GA Exchange", "CHF", Instant.now());
+                base, "Arthur Dent Holdings", "ARTHURDENTLEI000001", "GA Exchange", "CHF", Instant.now());
     }
 
     @Test
@@ -83,7 +83,7 @@ class CaMaterializerIntegrationTest {
             assertThat(row).isPresent();
             assertThat(row.get().getIsin()).isEqualTo("CH0012221716");
             assertThat(row.get().getEventType()).isEqualTo("DVCA");
-            assertThat(row.get().getSecurityName()).isEqualTo("Nestle SA");
+            assertThat(row.get().getSecurityName()).isEqualTo("Arthur Dent Holdings");
             assertThat(row.get().getMarketOfListing()).isEqualTo("GA Exchange");
             assertThat(row.get().getEnrichedAt()).isNotNull();
             assertThat(row.get().getReceivedAt()).isNotNull();
@@ -127,7 +127,7 @@ class CaMaterializerIntegrationTest {
                 "20261231", new BigDecimal("2500.00"), "CHF", "ACC-001",
                 new BigDecimal("1000"), "SETT", "MT566", Instant.now());
         var event2 = new EnrichedConfirmationEvent(
-                base2, "Nestle SA", "PBLD0EJDB5FWOLXP3B76", "GA Exchange", "CHF", Instant.now());
+                base2, "Arthur Dent Holdings", "ARTHURDENTLEI000001", "GA Exchange", "CHF", Instant.now());
 
         // Act
         enrichedTemplate.send("ca.confirmations.enriched", event2.base().messageId(), event2);

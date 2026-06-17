@@ -63,8 +63,8 @@ class CaConfirmationsApiIntegrationTest {
         e.setQuantity(new BigDecimal("1000"));
         e.setStatus("SETT");
         e.setSourceFormat("MT566");
-        e.setSecurityName("Nestle SA");
-        e.setIssuerLei("PBLD0EJDB5FWOLXP3B76");
+        e.setSecurityName("Arthur Dent Holdings");
+        e.setIssuerLei("ARTHURDENTLEI000001");
         e.setMarketOfListing("GA Exchange");
         e.setSettleCcy("CHF");
         e.setEnrichedAt(Instant.now());
@@ -88,7 +88,7 @@ class CaConfirmationsApiIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getMessageId()).isEqualTo("MSG-IT-001");
         assertThat(response.getBody().getIsin()).isEqualTo("CH0012221716");
-        assertThat(response.getBody().getSecurityName()).isEqualTo("Nestle SA");
+        assertThat(response.getBody().getSecurityName()).isEqualTo("Arthur Dent Holdings");
         assertThat(response.getBody().getMarketOfListing()).isEqualTo("GA Exchange");
     }
 

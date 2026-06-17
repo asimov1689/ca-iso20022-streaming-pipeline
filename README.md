@@ -1,6 +1,5 @@
 # Corporate Actions ISO 20022 Post-Settlement Pipeline
 
-![CI](https://github.com/asimov1689/ca-iso20022-streaming-pipeline/actions/workflows/ci.yml/badge.svg)
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen)
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.5.0-black)

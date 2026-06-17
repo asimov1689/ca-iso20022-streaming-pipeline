@@ -105,7 +105,7 @@ class CaEnricherIntegrationTest {
         // Arrange
         wireMock.stubFor(get(urlEqualTo("/cobol/reference/CH0012221716"))
                 .willReturn(okJson("""
-                        {"securityName":"Nestle SA","issuerLei":"PBLD0EJDB5FWOLXP3B76",
+                        {"securityName":"Arthur Dent Holdings","issuerLei":"ARTHURDENTLEI000001",
                          "marketOfListing":"GA Exchange","settleCcy":"CHF"}
                         """)));
         var confirmation = new CaConfirmationEvent(
@@ -120,14 +120,14 @@ class CaEnricherIntegrationTest {
         ConsumerRecord<String, EnrichedConfirmationEvent> record =
                 pollByMessageId("IT-ENRICH-001");
         assertThat(record.key()).isEqualTo("IT-ENRICH-001");
-        assertThat(record.value().securityName()).isEqualTo("Nestle SA");
+        assertThat(record.value().securityName()).isEqualTo("Arthur Dent Holdings");
         assertThat(record.value().marketOfListing()).isEqualTo("GA Exchange");
         assertThat(record.value().base().isin()).isEqualTo("CH0012221716");
 
         // Assert — audit row persisted in PostgreSQL
         var logEntry = logRepo.findByMessageId("IT-ENRICH-001");
         assertThat(logEntry).isPresent();
-        assertThat(logEntry.get().getSecurityName()).isEqualTo("Nestle SA");
+        assertThat(logEntry.get().getSecurityName()).isEqualTo("Arthur Dent Holdings");
         assertThat(logEntry.get().getIsin()).isEqualTo("CH0012221716");
         assertThat(logEntry.get().getEnrichedAt()).isNotNull();
     }

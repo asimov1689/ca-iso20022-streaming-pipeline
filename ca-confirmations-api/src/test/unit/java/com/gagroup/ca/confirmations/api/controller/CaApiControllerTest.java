@@ -30,7 +30,7 @@ class CaApiControllerTest {
         e.setIsin("CH0012221716");
         e.setEventType("DVCA");
         e.setConfirmationRef("CONF-001");
-        e.setSecurityName("Nestle SA");
+        e.setSecurityName("Arthur Dent Holdings");
         e.setMarketOfListing("GA Exchange");
         return e;
     }
@@ -57,7 +57,7 @@ class CaApiControllerTest {
         mvc.perform(get("/api/v1/settled-confirmations/MSG-001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isin").value("CH0012221716"))
-                .andExpect(jsonPath("$.securityName").value("Nestle SA"));
+                .andExpect(jsonPath("$.securityName").value("Arthur Dent Holdings"));
     }
 
     @Test

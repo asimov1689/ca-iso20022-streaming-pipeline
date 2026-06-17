@@ -32,8 +32,8 @@ class CobolReferenceClientTest {
     void fetchRefDataCobolStubRespondsReturnsRefData() {
         // Arrange
         var stubResponse = Map.of(
-                "securityName",    "Nestle SA",
-                "issuerLei",       "PBLD0EJDB5FWOLXP3B76",
+                "securityName",    "Arthur Dent Holdings",
+                "issuerLei",       "ARTHURDENTLEI000001",
                 "marketOfListing", "GA Exchange",
                 "settleCcy",       "CHF");
         when(restTemplate.getForObject("http://localhost:8086/cobol/reference/CH0012221716", Map.class))
@@ -43,7 +43,7 @@ class CobolReferenceClientTest {
         Map<String, String> result = client.fetchRefData("CH0012221716");
 
         // Assert
-        assertThat(result).containsEntry("securityName", "Nestle SA");
+        assertThat(result).containsEntry("securityName", "Arthur Dent Holdings");
         assertThat(result).containsEntry("marketOfListing", "GA Exchange");
         assertThat(result).containsEntry("settleCcy", "CHF");
     }
@@ -81,7 +81,7 @@ class CobolReferenceClientTest {
     void fetchRefDataCallsCorrectEndpointUrl() {
         // Arrange
         when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(Map.of(
-                "securityName", "ABB Ltd", "issuerLei", "529900WOYRUK9N8J1T75",
+                "securityName", "Ford Prefect Ltd", "issuerLei", "FORDPREFECTLEI00001",
                 "marketOfListing", "GA Exchange", "settleCcy", "CHF"));
 
         // Act
