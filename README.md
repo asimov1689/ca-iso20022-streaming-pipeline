@@ -6,11 +6,15 @@
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.5.0-black)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)
 
-I built this to process post-settlement corporate action confirmations in ISO 20022-aligned MT566
-pipe-delimited and seev.036 XML formats so that raw batch confirmations can move through a
-service-oriented streaming pipeline and become queryable settlement records. The system is modelled
-as six independently deployable Spring Boot services that ingest, normalise, enrich, materialise,
-and serve corporate action settlement data through Kafka, PostgreSQL, and a cached REST read side.
+In this project, I build a focused event-driven Corporate Actions post-settlement platform using
+Java 21, Spring Boot, Kafka, PostgreSQL, and COBOL reference-data enrichment. It supports SWIFT
+MT566 and ISO 20022 seev.036 confirmations, with validation across unit, contract, integration,
+and full-stack system tests.
+
+The system is modelled as six independently deployable Spring Boot services that ingest, normalise,
+enrich, materialise, and serve corporate action settlement data through Kafka, PostgreSQL, and a
+cached REST read side. Raw batch confirmations from legacy systems move through this
+service-oriented streaming pipeline to become queryable settlement records.
 
 ---
 
