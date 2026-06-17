@@ -6,12 +6,11 @@
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.5.0-black)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)
 
-Production-grade event streaming pipeline that processes post-settlement corporate action
-confirmations in ISO 20022 (MT566 pipe-delimited and seev.036 XML) formats. Six independently
-deployable Spring Boot microservices consume from a COBOL batch adapter, normalise, enrich with
-reference data, and materialise a queryable master table — served via a Caffeine-cached REST API.
-
-> **Author:** Christian Oliver Jaramillo ([@asimov1689](https://github.com/asimov1689))
+I built this to process post-settlement corporate action confirmations in ISO 20022-aligned MT566
+pipe-delimited and seev.036 XML formats so that raw batch confirmations can move through a
+service-oriented streaming pipeline and become queryable settlement records. The system is modelled
+as six independently deployable Spring Boot services that ingest, normalise, enrich, materialise,
+and serve corporate action settlement data through Kafka, PostgreSQL, and a cached REST read side.
 
 ---
 
@@ -99,37 +98,14 @@ reference data, and materialise a queryable master table — served via a Caffei
 
 ---
 
-## Prerequisites
+## Platform Requirements
 
-- **Java 21** (`sdk install java 21-tem` or [Temurin](https://adoptium.net))
-- **Docker Desktop** 4.x+ (for local stack and Testcontainers)
-- **Gradle** — wrapper included, no installation needed
-
----
-
-## Quick Start
-
-```bash
-# 1. Clone
-git clone git@github.com:asimov1689/ca-iso20022-streaming-pipeline.git
-cd ca-iso20022-streaming-pipeline
-
-# 2. Build all JARs (skip tests for speed)
-./gradlew clean build -x test
-
-# 3. Start the full sandbox stack
-docker compose --env-file infrastructure/sandbox/sandbox.env \
-  -f infrastructure/productive/docker-compose.yml \
-  -f infrastructure/sandbox/docker-compose.yml up --build
-
-# 4. Submit a test MT566 confirmation
-curl -X POST http://localhost:8081/api/v1/ingest/mt566 \
-  -H "Content-Type: text/plain" \
-  -d "CONF-20261231-001|CH0012221716|DVCA|20261231|2500.00|CHF|ACC-001|1000|SETT"
-
-# 5. Query the master table (allow ~2s for pipeline to process)
-curl http://localhost:8085/api/v1/settled-confirmations
-```
+| Capability | Requirement |
+|---|---|
+| Java runtime | Java 21 LTS |
+| Build system | Gradle wrapper |
+| Container runtime | Docker-compatible runtime for Kafka, PostgreSQL, and Testcontainers |
+| CI runner | GitHub Actions `ubuntu-latest` |
 
 ---
 
@@ -137,37 +113,19 @@ curl http://localhost:8085/api/v1/settled-confirmations
 
 ### ca-producer — Ingest
 
-```
-POST /api/v1/ingest/mt566
-  Content-Type: text/plain
-  Body: CONF_REF|ISIN|EVENT_TYPE|SETTLE_DATE|NET_CASH|CCY|ACCOUNT|QTY|STATUS
-  → 202 Accepted  { "messageId": "...", "type": "MT566", "status": "ACCEPTED" }
-
-POST /api/v1/ingest/seev036
-  Content-Type: application/xml
-  Body: <seev.036.001.14> ... </seev.036.001.14>
-  → 202 Accepted  { "messageId": "...", "type": "seev.036", "status": "ACCEPTED" }
-```
+| Method | Path | Content type | Payload | Response |
+|---|---|---|---|---|
+| POST | `/api/v1/ingest/mt566` | `text/plain` | `CONF_REF\|ISIN\|EVENT_TYPE\|SETTLE_DATE\|NET_CASH\|CCY\|ACCOUNT\|QTY\|STATUS` | `202 Accepted` with message metadata |
+| POST | `/api/v1/ingest/seev036` | `application/xml` | ISO 20022 `seev.036.001.14` document | `202 Accepted` with message metadata |
 
 ### ca-confirmations-api — Query
 
-```
-GET  /api/v1/settled-confirmations
-     ?isin=CH0012221716
-     &eventType=DVCA
-     &accountId=ACC-001
-  → 200 OK  [ { ...CaSettledEvent }, ... ]
-
-GET  /api/v1/settled-confirmations/{messageId}
-  → 200 OK  { ...CaSettledEvent }
-  → 404 Not Found
-
-GET  /api/v1/settled-confirmations/settlement-range?from=20261201&to=20261231
-  → 200 OK  [ { ...CaSettledEvent }, ... ]
-
-GET  /api/v1/settled-confirmations/health
-  → 200 OK  { "status": "UP", "service": "ca-confirmations-api", "master-table-count": "42" }
-```
+| Method | Path | Parameters | Response |
+|---|---|---|---|
+| GET | `/api/v1/settled-confirmations` | Optional `isin`, `eventType`, `accountId` | List of `CaSettledEvent` records |
+| GET | `/api/v1/settled-confirmations/{messageId}` | `messageId` path variable | Single `CaSettledEvent` or `404 Not Found` |
+| GET | `/api/v1/settled-confirmations/settlement-range` | Required `from`, `to` settlement dates | List of matching `CaSettledEvent` records |
+| GET | `/api/v1/settled-confirmations/health` | None | Service status and master-table count |
 
 ---
 
@@ -182,9 +140,9 @@ GET  /api/v1/settled-confirmations/health
 
 ---
 
-## Test Pyramid
+## Validation Model
 
-The project enforces a 4-layer test pyramid. Each layer runs in isolation in CI.
+The project uses a four-layer validation model. Each layer is isolated in CI.
 
 ```
         ▲
@@ -198,22 +156,6 @@ The project enforces a 4-layer test pyramid. Each layer runs in isolation in CI.
 /───────────────────\
 ```
 
-```bash
-# Run each layer individually
-./gradlew test                              # unit        (~5s,   no Docker)
-./gradlew contractTest                     # contract    (~10s,  WireMock only)
-./gradlew integrationTest                  # integration (~2min, Testcontainers)
-./gradlew :ca-confirmations-api:systemTest # E2E         (~1min, full Docker stack)
-
-# Run all at once (CI order)
-./gradlew checkstyleMain test contractTest integrationTest
-```
-
-> **E2E prerequisite:** Docker images must be built first —
-> `./gradlew build -x test && docker compose --env-file infrastructure/sandbox/sandbox.env -f infrastructure/productive/docker-compose.yml -f infrastructure/sandbox/docker-compose.yml build`
-
----
-
 ## Runtime Profiles
 
 The repo separates productive runtime configuration from the sandbox used for local and CI validation.
@@ -223,28 +165,9 @@ The repo separates productive runtime configuration from the sandbox used for lo
 | `productive` | Production-like deployment contract for app containers only | Platform environment variables plus `infrastructure/productive/docker-compose.yml` |
 | `sandbox` | Local full-stack testing with Kafka, PostgreSQL, and the COBOL stub | `infrastructure/sandbox/sandbox.env` plus `infrastructure/sandbox/docker-compose.yml` |
 
-Productive runtime expects managed dependencies and does not provide local defaults for secrets or infrastructure endpoints:
-
-```bash
-export SPRING_PROFILES_ACTIVE=productive
-export CA_KAFKA_BOOTSTRAP_SERVERS=kafka.prod.example:9092
-export CA_DB_URL=jdbc:postgresql://postgres.prod.example:5432/caevents
-export CA_DB_USERNAME=ca_app
-export CA_DB_PASSWORD='<from-secret-store>'
-export CA_REFERENCE_DATA_URL=https://reference-data.example
-
-docker compose -f infrastructure/productive/docker-compose.yml up -d
-```
-
-Sandbox runtime is isolated and disposable:
-
-```bash
-docker compose --env-file infrastructure/sandbox/sandbox.env \
-  -f infrastructure/productive/docker-compose.yml \
-  -f infrastructure/sandbox/docker-compose.yml up --build
-```
-
-Do not use sandbox credentials or `application-sandbox.yml` defaults outside local testing and CI-style validation.
+The productive runtime expects managed infrastructure dependencies and externalised credentials.
+Sandbox runtime is isolated and disposable, with local Kafka, PostgreSQL, and stubbed reference data.
+Sandbox credentials and `application-sandbox.yml` defaults are not production configuration.
 
 ### Test counts by service
 
@@ -310,7 +233,7 @@ The write side (materializer) and read side (confirmations-api) have independent
 and failure domains. The API never touches Kafka — it reads a clean, pre-materialised table.
 
 **Why Caffeine over Redis?**
-For a single-node portfolio service, Caffeine provides microsecond in-process caching with zero
+For a single-node query service, Caffeine provides microsecond in-process caching with zero
 operational overhead. Redis would be appropriate when multiple API replicas need a shared cache.
 
 **Why idempotent upsert in ca-materializer?**

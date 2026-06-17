@@ -8,9 +8,6 @@
 #   2. integration-tests — every push, ~4-6 min, Testcontainers
 #   3. contract-tests    — every push, ~1-2 min, WireMock only
 #   4. system-tests      — PR to main + push to main only, ~8-10 min
-#
-# STATUS BADGE (add to README.md):
-# ![CI](https://github.com/asimov1689/ca-iso20022-streaming-pipeline/actions/workflows/ci.yml/badge.svg)
 
 name: CI
 
