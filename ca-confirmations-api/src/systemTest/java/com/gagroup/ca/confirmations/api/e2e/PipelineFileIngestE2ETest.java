@@ -1,4 +1,4 @@
-package com.gagroup.ca.confirmations.api.system;
+package com.gagroup.ca.confirmations.api.e2e;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,6 +35,21 @@ import static org.awaitility.Awaitility.await;
  */
 @Testcontainers
 class PipelineFileIngestE2ETest {
+
+    private static final String VALID_SEEV036 = """
+            <Document>
+              <CorpActnConf>
+                <ConfRef>CONF-20261215-XML</ConfRef>
+                <FinInstrm><ISIN>CH0012255580</ISIN></FinInstrm>
+                <EvtTp>BONU</EvtTp>
+                <SttlmDt>20261215</SttlmDt>
+                <NetCshAmt><Amt Ccy="CHF">1200.00</Amt></NetCshAmt>
+                <AcctId>ACC-XML-002</AcctId>
+                <Qty>250</Qty>
+                <Sts>SETT</Sts>
+              </CorpActnConf>
+            </Document>
+            """;
 
     static final Network NETWORK = Network.newNetwork();
 
@@ -81,7 +96,9 @@ class PipelineFileIngestE2ETest {
             new GenericContainer<>("ca-formatter:0.0.1-SNAPSHOT")
                     .withNetwork(NETWORK)
                     .dependsOn(KAFKA)
-                    .withEnv("SPRING_KAFKA_BOOTSTRAP_SERVERS", "kafka:19092")
+                    .withEnv(Map.of(
+                            "SPRING_KAFKA_BOOTSTRAP_SERVERS",         "kafka:19092",
+                            "SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET", "earliest"))
                     .withLogConsumer(logConsumer("formatter"))
                     .withExposedPorts(8082)
                     .waitingFor(Wait.forHttp("/actuator/health")
@@ -93,11 +110,12 @@ class PipelineFileIngestE2ETest {
                     .withNetwork(NETWORK)
                     .dependsOn(KAFKA, COBOL_STUB, POSTGRES)
                     .withEnv(Map.of(
-                            "SPRING_KAFKA_BOOTSTRAP_SERVERS", "kafka:19092",
-                            "COBOL_STUB_URL",                 "http://cobol-stub:8086",
-                            "SPRING_DATASOURCE_URL",          "jdbc:postgresql://postgres:5432/caevents",
-                            "SPRING_DATASOURCE_USERNAME",     "causer",
-                            "SPRING_DATASOURCE_PASSWORD",     "capass"))
+                            "SPRING_KAFKA_BOOTSTRAP_SERVERS",          "kafka:19092",
+                            "SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET", "earliest",
+                            "COBOL_STUB_URL",                          "http://cobol-stub:8086",
+                            "SPRING_DATASOURCE_URL",                   "jdbc:postgresql://postgres:5432/caevents",
+                            "SPRING_DATASOURCE_USERNAME",              "causer",
+                            "SPRING_DATASOURCE_PASSWORD",              "capass"))
                     .withLogConsumer(logConsumer("enricher"))
                     .withExposedPorts(8083)
                     .waitingFor(Wait.forHttp("/actuator/health")
@@ -109,10 +127,11 @@ class PipelineFileIngestE2ETest {
                     .withNetwork(NETWORK)
                     .dependsOn(KAFKA, POSTGRES)
                     .withEnv(Map.of(
-                            "SPRING_KAFKA_BOOTSTRAP_SERVERS", "kafka:19092",
-                            "SPRING_DATASOURCE_URL",          "jdbc:postgresql://postgres:5432/caevents",
-                            "SPRING_DATASOURCE_USERNAME",     "causer",
-                            "SPRING_DATASOURCE_PASSWORD",     "capass"))
+                            "SPRING_KAFKA_BOOTSTRAP_SERVERS",          "kafka:19092",
+                            "SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET", "earliest",
+                            "SPRING_DATASOURCE_URL",                   "jdbc:postgresql://postgres:5432/caevents",
+                            "SPRING_DATASOURCE_USERNAME",              "causer",
+                            "SPRING_DATASOURCE_PASSWORD",              "capass"))
                     .withLogConsumer(logConsumer("materializer"))
                     .withExposedPorts(8084)
                     .waitingFor(Wait.forHttp("/actuator/health")
@@ -163,6 +182,35 @@ class PipelineFileIngestE2ETest {
                     assertThat(apiResp.getBody().get("isin")).isEqualTo("CH0038863350");
                     assertThat(apiResp.getBody().get("securityName")).isEqualTo("Trillian Astra PLC");
                     assertThat(apiResp.getBody().get("eventType")).isEqualTo("DVCA");
+                });
+    }
+
+    @Test
+    @DisplayName("Entry Point B — File Ingest: ISO 20022 seev.036 POST " +
+                 "flows through full system to ca-confirmations-api")
+    void fileIngestSeev036ConfirmationShouldAppearInMasterTableViaApi() {
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        var request = new HttpEntity<>(VALID_SEEV036, headers);
+        String producerUrl = producerBaseUrl() + "/api/v1/ingest/seev036";
+
+        ResponseEntity<Map> publishResp = rest.exchange(
+                producerUrl, HttpMethod.POST, request, Map.class);
+        String messageId = (String) publishResp.getBody().get("messageId");
+
+        assertThat(publishResp.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(messageId).isNotBlank();
+
+        String apiUrl = apiBaseUrl() + "/api/v1/settled-confirmations/" + messageId;
+        await().atMost(30, TimeUnit.SECONDS).pollInterval(Duration.ofSeconds(2))
+                .untilAsserted(() -> {
+                    ResponseEntity<Map> apiResp = rest.getForEntity(apiUrl, Map.class);
+                    assertThat(apiResp.getStatusCode()).isEqualTo(HttpStatus.OK);
+                    assertThat(apiResp.getBody().get("isin")).isEqualTo("CH0012255580");
+                    assertThat(apiResp.getBody().get("securityName")).isEqualTo("Ford Prefect Ltd");
+                    assertThat(apiResp.getBody().get("eventType")).isEqualTo("BONU");
+                    assertThat(apiResp.getBody().get("sourceFormat")).isEqualTo("seev.036");
+                    assertThat(apiResp.getBody().get("confirmationRef")).isEqualTo("CONF-20261215-XML");
                 });
     }
 

@@ -68,7 +68,9 @@ public class KafkaToRestOpenApiE2ETest {
             new GenericContainer<>("ca-formatter:0.0.1-SNAPSHOT")
                     .withNetwork(NETWORK)
                     .dependsOn(KAFKA)
-                    .withEnv("SPRING_KAFKA_BOOTSTRAP_SERVERS", "kafka:19092")
+                    .withEnv(Map.of(
+                            "SPRING_KAFKA_BOOTSTRAP_SERVERS",         "kafka:19092",
+                            "SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET", "earliest"))
                     .withLogConsumer(logConsumer("formatter"))
                     .withExposedPorts(8082)
                     .waitingFor(Wait.forHttp("/actuator/health")
@@ -80,11 +82,12 @@ public class KafkaToRestOpenApiE2ETest {
                     .withNetwork(NETWORK)
                     .dependsOn(KAFKA, COBOL_STUB, POSTGRES)
                     .withEnv(Map.of(
-                            "SPRING_KAFKA_BOOTSTRAP_SERVERS", "kafka:19092",
-                            "COBOL_STUB_URL",                 "http://cobol-stub:8086",
-                            "SPRING_DATASOURCE_URL",          "jdbc:postgresql://postgres:5432/caevents",
-                            "SPRING_DATASOURCE_USERNAME",     "causer",
-                            "SPRING_DATASOURCE_PASSWORD",     "capass"))
+                            "SPRING_KAFKA_BOOTSTRAP_SERVERS",          "kafka:19092",
+                            "SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET", "earliest",
+                            "COBOL_STUB_URL",                          "http://cobol-stub:8086",
+                            "SPRING_DATASOURCE_URL",                   "jdbc:postgresql://postgres:5432/caevents",
+                            "SPRING_DATASOURCE_USERNAME",              "causer",
+                            "SPRING_DATASOURCE_PASSWORD",              "capass"))
                     .withLogConsumer(logConsumer("enricher"))
                     .withExposedPorts(8083)
                     .waitingFor(Wait.forHttp("/actuator/health")
@@ -96,10 +99,11 @@ public class KafkaToRestOpenApiE2ETest {
                     .withNetwork(NETWORK)
                     .dependsOn(KAFKA, POSTGRES)
                     .withEnv(Map.of(
-                            "SPRING_KAFKA_BOOTSTRAP_SERVERS", "kafka:19092",
-                            "SPRING_DATASOURCE_URL",          "jdbc:postgresql://postgres:5432/caevents",
-                            "SPRING_DATASOURCE_USERNAME",     "causer",
-                            "SPRING_DATASOURCE_PASSWORD",     "capass"))
+                            "SPRING_KAFKA_BOOTSTRAP_SERVERS",          "kafka:19092",
+                            "SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET", "earliest",
+                            "SPRING_DATASOURCE_URL",                   "jdbc:postgresql://postgres:5432/caevents",
+                            "SPRING_DATASOURCE_USERNAME",              "causer",
+                            "SPRING_DATASOURCE_PASSWORD",              "capass"))
                     .withLogConsumer(logConsumer("materializer"))
                     .withExposedPorts(8084)
                     .waitingFor(Wait.forHttp("/actuator/health")

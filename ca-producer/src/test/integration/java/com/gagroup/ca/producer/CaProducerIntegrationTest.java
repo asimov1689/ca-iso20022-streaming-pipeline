@@ -35,6 +35,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 class CaProducerIntegrationTest {
 
+    private static final String VALID_SEEV036 = """
+            <Document>
+              <CorpActnConf>
+                <ConfRef>CONF-XML-001</ConfRef>
+                <FinInstrm><ISIN>CH0012255580</ISIN></FinInstrm>
+                <EvtTp>BONU</EvtTp>
+                <SttlmDt>20261215</SttlmDt>
+                <NetCshAmt><Amt Ccy="CHF">1200.00</Amt></NetCshAmt>
+                <AcctId>ACC-XML-001</AcctId>
+                <Qty>250</Qty>
+                <Sts>SETT</Sts>
+              </CorpActnConf>
+            </Document>
+            """;
+
     @Container
     static KafkaContainer kafka = new KafkaContainer(
             DockerImageName.parse("confluentinc/cp-kafka:7.5.0"));
@@ -101,14 +116,15 @@ class CaProducerIntegrationTest {
     void postSeev036ShouldPublishRawEventWithCorrectMessageType() {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_XML);
-        String xml = "<Document/>";
 
         var response = rest.exchange(
                 "/api/v1/ingest/seev036", HttpMethod.POST,
-                new HttpEntity<>(xml, headers), Map.class);
+                new HttpEntity<>(VALID_SEEV036, headers), Map.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         String messageId = (String) response.getBody().get("messageId");
-        assertThat(pollByMessageId(messageId).messageType()).isEqualTo("seev.036");
+        RawConfirmationEvent event = pollByMessageId(messageId);
+        assertThat(event.messageType()).isEqualTo("seev.036");
+        assertThat(event.rawPayload()).isEqualTo(VALID_SEEV036);
     }
 }

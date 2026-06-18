@@ -149,8 +149,8 @@ The project uses a four-layer validation model. Each layer is isolated in CI.
 
 ```
         ▲
-       /E2E\         systemTest      — 2 full-stack Testcontainers tests
-      /─────\                          (Kafka-direct + File-ingest entry points)
+       /E2E\         systemTest      — 3 full-stack Testcontainers tests
+      /─────\                          (Kafka-direct + MT566 file-ingest + seev.036 file-ingest)
      /  Intg  \      integrationTest — @EmbeddedKafka + PostgreSQLContainer
     /───────────\
    / Contract    \   contractTest    — WireMock (ca-enricher → ca-cobol-stub)
@@ -176,12 +176,12 @@ Sandbox credentials and `application-sandbox.yml` defaults are not production co
 
 | Service | Unit | Integration | Contract | E2E |
 |---|---|---|---|---|
-| ca-producer | 2 | 2 | — | — |
-| ca-formatter | 14 | 2 | — | — |
+| ca-producer | 8 | 2 | — | — |
+| ca-formatter | 18 | 5 | — | — |
 | ca-cobol-stub | 5 | 4 | — | — |
 | ca-enricher | 8 | 2 | 5 | — |
 | ca-materializer | 4 | 4 | — | — |
-| ca-confirmations-api | 8 | 8 | — | 2 |
+| ca-confirmations-api | 9 | 8 | — | 3 |
 
 ---
 

@@ -5,6 +5,7 @@ import com.gagroup.ca.model.RawConfirmationEvent;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -21,23 +22,25 @@ public class MxConfirmationParser {
 
     public CaConfirmationEvent parse(RawConfirmationEvent raw) {
         try {
-            Document doc = DocumentBuilderFactory.newInstance()
+            Document doc = secureFactory()
                     .newDocumentBuilder()
                     .parse(new ByteArrayInputStream(
                             raw.rawPayload().getBytes(StandardCharsets.UTF_8)));
             doc.getDocumentElement().normalize();
+            requireRoot(doc, "Document");
+            requireElement(doc, "CorpActnConf");
 
             return new CaConfirmationEvent(
                     raw.messageId(),
-                    text(doc, "ConfRef"),
-                    text(doc, "ISIN"),
-                    text(doc, "EvtTp"),
-                    text(doc, "SttlmDt"),
-                    new BigDecimal(text(doc, "Amt")),
-                    attr(doc, "Amt", "Ccy"),
-                    text(doc, "AcctId"),
-                    new BigDecimal(text(doc, "Qty")),
-                    text(doc, "Sts"),
+                    requiredText(doc, "ConfRef"),
+                    requiredText(doc, "ISIN"),
+                    requiredText(doc, "EvtTp"),
+                    requiredText(doc, "SttlmDt"),
+                    new BigDecimal(requiredText(doc, "Amt")),
+                    requiredAttr(doc, "Amt", "Ccy"),
+                    requiredText(doc, "AcctId"),
+                    new BigDecimal(requiredText(doc, "Qty")),
+                    requiredText(doc, "Sts"),
                     "seev.036",
                     Instant.now()
             );
@@ -47,11 +50,46 @@ public class MxConfirmationParser {
         }
     }
 
-    private String text(Document doc, String tag) {
-        return doc.getElementsByTagName(tag).item(0).getTextContent().trim();
+    private DocumentBuilderFactory secureFactory() throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        factory.setXIncludeAware(false);
+        factory.setExpandEntityReferences(false);
+        return factory;
     }
 
-    private String attr(Document doc, String tag, String attribute) {
-        return ((Element) doc.getElementsByTagName(tag).item(0)).getAttribute(attribute);
+    private void requireRoot(Document doc, String expectedRoot) {
+        if (doc.getDocumentElement() == null
+                || !expectedRoot.equals(doc.getDocumentElement().getTagName())) {
+            throw new IllegalArgumentException("Missing required root element " + expectedRoot);
+        }
+    }
+
+    private Element requireElement(Document doc, String tag) {
+        if (doc.getElementsByTagName(tag).item(0) instanceof Element element) {
+            return element;
+        }
+        throw new IllegalArgumentException("Missing required element " + tag);
+    }
+
+    private String requiredText(Document doc, String tag) {
+        String value = requireElement(doc, tag).getTextContent().trim();
+        if (!value.isEmpty()) {
+            return value;
+        }
+        throw new IllegalArgumentException("Blank required element " + tag);
+    }
+
+    private String requiredAttr(Document doc, String tag, String attribute) {
+        String value = requireElement(doc, tag).getAttribute(attribute).trim();
+        if (!value.isEmpty()) {
+            return value;
+        }
+        throw new IllegalArgumentException("Blank required attribute " + tag + "@" + attribute);
     }
 }

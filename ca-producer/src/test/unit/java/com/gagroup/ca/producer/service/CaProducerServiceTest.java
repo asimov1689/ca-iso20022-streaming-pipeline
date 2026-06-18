@@ -22,6 +22,21 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CaProducerServiceTest {
 
+    private static final String VALID_SEEV036 = """
+            <Document>
+              <CorpActnConf>
+                <ConfRef>CONF-XML-001</ConfRef>
+                <FinInstrm><ISIN>CH0012255580</ISIN></FinInstrm>
+                <EvtTp>BONU</EvtTp>
+                <SttlmDt>20261215</SttlmDt>
+                <NetCshAmt><Amt Ccy="CHF">1200.00</Amt></NetCshAmt>
+                <AcctId>ACC-XML-001</AcctId>
+                <Qty>250</Qty>
+                <Sts>SETT</Sts>
+              </CorpActnConf>
+            </Document>
+            """;
+
     @Mock KafkaTemplate<String, RawConfirmationEvent> kafkaTemplate;
     @InjectMocks CaProducerService service;
 
@@ -46,9 +61,12 @@ class CaProducerServiceTest {
         when(kafkaTemplate.send(anyString(), anyString(), any()))
                 .thenReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
 
-        service.publish("<Document/>", "seev.036");
+        String messageId = service.publish(VALID_SEEV036, "seev.036");
 
-        verify(kafkaTemplate).send(eq("ca.confirmations.raw"), anyString(), any());
+        var captor = ArgumentCaptor.forClass(RawConfirmationEvent.class);
+        verify(kafkaTemplate).send(eq("ca.confirmations.raw"), eq(messageId), captor.capture());
+        assertThat(captor.getValue().messageType()).isEqualTo("seev.036");
+        assertThat(captor.getValue().rawPayload()).isEqualTo(VALID_SEEV036);
     }
 
     @Test
