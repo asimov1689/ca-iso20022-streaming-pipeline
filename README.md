@@ -5,10 +5,19 @@
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.5.0-black)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)
 
-I built a six-service event-driven post-settlement pipeline for corporate actions.
+I built an event-driven post-settlement pipeline for corporate actions.
 It ingests SWIFT MT566 and ISO 20022 `seev.036` confirmations, normalizes them into
-a canonical event stream, enriches them with legacy reference data, materializes
+a canonical event stream, enriches them with reference data, materializes
 settled state in PostgreSQL, and serves a read-optimized API.
+
+## Business Concepts
+
+- Corporate action confirmations are the settled outcomes of events such as cash distributions, bonus issues, rights, and mergers.
+- The pipeline accepts confirmations in both legacy SWIFT MT566 form and ISO 20022 `seev.036` XML form.
+- Normalization produces one business contract with confirmation reference, ISIN, event type, settlement date, amount, currency, account, quantity, and status.
+- Enrichment adds reference attributes needed downstream, such as security identity and market context.
+- Materialization turns the event stream into a settled-events store that can support operations, reconciliation, and reporting use cases.
+- The API exposes the settled state by `messageId`, `isin`, `eventType`, `accountId`, and settlement-date range.
 
 ## Architectural Highlights
 
@@ -16,7 +25,7 @@ settled state in PostgreSQL, and serves a read-optimized API.
 - Canonical event model in `shared-model`, so MT566 and `seev.036` converge early and the rest of the pipeline stays format-agnostic.
 - Idempotent materialization keyed by `messageId`, which makes duplicate Kafka deliveries safe.
 - Clean read side separation: write path stops at PostgreSQL, query path starts at `ca-confirmations-api`.
-- Legacy integration isolated behind `ca-cobol-stub`, following a Strangler Fig boundary instead of leaking mainframe concerns into the rest of the system.
+- Legacy integration isolated behind `ca-cobol-stub`, following a Strangler Fig boundary instead of leaking source-system concerns into the rest of the system.
 - Parse failures go to a dead-letter topic instead of contaminating downstream state.
 - Full-stack system coverage proves the pipeline from Kafka consumption and both ingest endpoints through to the OpenAPI-backed REST layer.
 
