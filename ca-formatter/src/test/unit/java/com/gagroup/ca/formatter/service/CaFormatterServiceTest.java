@@ -29,6 +29,21 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CaFormatterServiceTest {
 
+    private static final String VALID_SEEV036 = """
+            <Document>
+              <CorpActnConf>
+                <ConfRef>CONF-XML-001</ConfRef>
+                <FinInstrm><ISIN>CH0012255580</ISIN></FinInstrm>
+                <EvtTp>BONU</EvtTp>
+                <SttlmDt>20261215</SttlmDt>
+                <NetCshAmt><Amt Ccy="CHF">1200.00</Amt></NetCshAmt>
+                <AcctId>ACC-XML-001</AcctId>
+                <Qty>250</Qty>
+                <Sts>SETT</Sts>
+              </CorpActnConf>
+            </Document>
+            """;
+
     @Mock KafkaTemplate<String, CaConfirmationEvent> formattedKafka;
     @Mock KafkaTemplate<String, RawConfirmationEvent> rawKafka;
     @Mock Mt566ConfirmationParser mt566Parser;
@@ -65,7 +80,7 @@ class CaFormatterServiceTest {
 
     @Test
     void consumeSeev036ShouldDelegateToMxParserAndPublish() {
-        var raw = new RawConfirmationEvent("MSG-002", "seev.036", "<Document/>", Instant.now());
+        var raw = new RawConfirmationEvent("MSG-002", "seev.036", VALID_SEEV036, Instant.now());
         var event = stubEvent("MSG-002", "seev.036");
         when(mxParser.parse(raw)).thenReturn(event);
         when(formattedKafka.send(anyString(), anyString(), any()))
@@ -77,6 +92,19 @@ class CaFormatterServiceTest {
         verify(mt566Parser, never()).parse(any());
         verify(formattedKafka).send(eq("ca.confirmations.formatted"), eq("MSG-002"), any());
         verifyNoInteractions(rawKafka);
+    }
+
+    @Test
+    void consumeSeev036ParseThrowsExceptionShouldSendOriginalRawEventToDlq() {
+        var raw = new RawConfirmationEvent("MSG-005", "seev.036", VALID_SEEV036, Instant.now());
+        when(mxParser.parse(raw)).thenThrow(new IllegalArgumentException("xml parse error"));
+        when(rawKafka.send(anyString(), anyString(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        service.consume(raw);
+
+        verify(rawKafka).send(eq("ca.dead-letter"), eq("MSG-005"), eq(raw));
+        verifyNoInteractions(formattedKafka);
     }
 
     @Test

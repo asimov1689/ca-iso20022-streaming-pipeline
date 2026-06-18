@@ -19,6 +19,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CaIngestController.class)
 class CaIngestControllerTest {
 
+    private static final String VALID_SEEV036 = """
+            <Document>
+              <CorpActnConf>
+                <ConfRef>CONF-XML-001</ConfRef>
+                <FinInstrm><ISIN>CH0012255580</ISIN></FinInstrm>
+                <EvtTp>BONU</EvtTp>
+                <SttlmDt>20261215</SttlmDt>
+                <NetCshAmt><Amt Ccy="CHF">1200.00</Amt></NetCshAmt>
+                <AcctId>ACC-XML-001</AcctId>
+                <Qty>250</Qty>
+                <Sts>SETT</Sts>
+              </CorpActnConf>
+            </Document>
+            """;
+
     @Autowired MockMvc mvc;
     @MockBean CaProducerService service;
 
@@ -41,11 +56,31 @@ class CaIngestControllerTest {
 
         mvc.perform(post("/api/v1/ingest/seev036")
                         .contentType(MediaType.APPLICATION_XML)
-                        .content("<Document/>"))
+                        .content(VALID_SEEV036))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.messageId").value("MSG-002"))
                 .andExpect(jsonPath("$.type").value("seev.036"))
                 .andExpect(jsonPath("$.status").value("ACCEPTED"));
+    }
+
+    @Test
+    void postSeev036TextXmlIsAlsoAccepted() throws Exception {
+        when(service.publish(anyString(), eq("seev.036"))).thenReturn("MSG-004");
+
+        mvc.perform(post("/api/v1/ingest/seev036")
+                        .contentType(MediaType.TEXT_XML)
+                        .content(VALID_SEEV036))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.messageId").value("MSG-004"))
+                .andExpect(jsonPath("$.type").value("seev.036"));
+    }
+
+    @Test
+    void postSeev036JsonShouldReturnUnsupportedMediaType() throws Exception {
+        mvc.perform(post("/api/v1/ingest/seev036")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"xml\":\"nope\"}"))
+                .andExpect(status().isUnsupportedMediaType());
     }
 
     @Test

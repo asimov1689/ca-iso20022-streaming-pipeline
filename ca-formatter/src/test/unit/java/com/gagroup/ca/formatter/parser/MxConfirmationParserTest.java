@@ -54,6 +54,75 @@ class MxConfirmationParserTest {
     }
 
     @Test
+    void parseMissingIsinShouldThrowIllegalArgument() {
+        String missingIsin = """
+                <Document>
+                  <CorpActnConf>
+                    <ConfRef>CONF-001</ConfRef>
+                    <FinInstrm></FinInstrm>
+                    <EvtTp>DVCA</EvtTp>
+                    <SttlmDt>20261231</SttlmDt>
+                    <NetCshAmt><Amt Ccy="CHF">2500.00</Amt></NetCshAmt>
+                    <AcctId>ACC-001</AcctId>
+                    <Qty>1000</Qty>
+                    <Sts>SETT</Sts>
+                  </CorpActnConf>
+                </Document>
+                """;
+
+        assertThatThrownBy(() -> parser.parse(raw(missingIsin)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Missing required element ISIN");
+    }
+
+    @Test
+    void parseMissingCurrencyAttributeShouldThrowIllegalArgument() {
+        String missingCurrency = """
+                <Document>
+                  <CorpActnConf>
+                    <ConfRef>CONF-001</ConfRef>
+                    <FinInstrm><ISIN>CH0012221716</ISIN></FinInstrm>
+                    <EvtTp>DVCA</EvtTp>
+                    <SttlmDt>20261231</SttlmDt>
+                    <NetCshAmt><Amt>2500.00</Amt></NetCshAmt>
+                    <AcctId>ACC-001</AcctId>
+                    <Qty>1000</Qty>
+                    <Sts>SETT</Sts>
+                  </CorpActnConf>
+                </Document>
+                """;
+
+        assertThatThrownBy(() -> parser.parse(raw(missingCurrency)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Blank required attribute Amt@Ccy");
+    }
+
+    @Test
+    void parseXmlWithDoctypeShouldThrowIllegalArgument() {
+        String withDoctype = """
+                <!DOCTYPE Document [
+                  <!ELEMENT Document ANY>
+                ]>
+                <Document>
+                  <CorpActnConf>
+                    <ConfRef>CONF-001</ConfRef>
+                    <FinInstrm><ISIN>CH0012221716</ISIN></FinInstrm>
+                    <EvtTp>DVCA</EvtTp>
+                    <SttlmDt>20261231</SttlmDt>
+                    <NetCshAmt><Amt Ccy="CHF">2500.00</Amt></NetCshAmt>
+                    <AcctId>ACC-001</AcctId>
+                    <Qty>1000</Qty>
+                    <Sts>SETT</Sts>
+                  </CorpActnConf>
+                </Document>
+                """;
+
+        assertThatThrownBy(() -> parser.parse(raw(withDoctype)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DOCTYPE");
+    }
+
+    @Test
     void parseMessageIdIsPreserved() {
         var raw = new RawConfirmationEvent("PRESERVE-ME", "seev.036", VALID_SEEV036, Instant.now());
 
